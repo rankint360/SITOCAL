@@ -83,3 +83,6 @@ Record real pass/fail results rather than assuming adapters are certified. Keep 
 - https://render.com/docs/disks
 - https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/
 - https://www.hostinger.com/support/1696789-how-to-change-nameservers-at-hostinger/
+
+## Checkpoint 1 completed — session 014
+User selected https://github.com/anjam775/Rankleum . Code is on main with deploy files at repository root. This repository is public, superseding the suggested private repository setup. Uploaded clean source was checked against the remote tree/blob hashes. Next: Render New → Web Service → connect anjam775/Rankleum → Docker. No Render service exists yet.
