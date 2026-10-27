@@ -1,0 +1,5 @@
+rankleem.com, www.rankleem.com, app.rankleem.com, editor.rankleem.com, wp.rankleem.com, serp.rankleem.com {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:4317
+    header Strict-Transport-Security "max-age=31536000"
+}
