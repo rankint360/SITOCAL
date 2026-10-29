@@ -47,7 +47,7 @@ async function handler(req,res){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
       if(user && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.2',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.3',mode:'development-alpha'});
     if(p==='/api/session')return json(res,200,{user:user?{id:user,email:session.email}:null,csrf:session?.csrf||null,googleConfigured:googleReady()});
     if(p==='/api/auth/register'||p==='/api/auth/login'){
       if(req.method!=='POST')throw new ProviderError('Method not allowed',405);rate('auth:'+req.socket.remoteAddress,10);const b=await body(req);const email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>200||password.length<12||password.length>200)throw new ProviderError('Use a valid email and a password of 12–200 characters',400);
@@ -108,7 +108,7 @@ async function handler(req,res){
     }
     if(p.startsWith('/api/'))throw new ProviderError('Endpoint not found',404);
     if(req.method!=='GET')throw new ProviderError('Method not allowed',405);
-    const files={'/assets/style.css':['style.css','text/css'],'/assets/app.js':['app.js','text/javascript']};
+    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
     if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs'].includes(p))throw new ProviderError('Page not found',404);
