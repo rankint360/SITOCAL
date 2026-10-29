@@ -10,6 +10,7 @@ import { ProviderError,request,pushRepository,deploy,checkSerp,demand } from './
 import { googleReady,googleStart,googleCallback,googleProperties,googleReport } from './lib/google.mjs';
 import { generateSite } from './lib/ai.mjs';
 import { hostConfig } from './lib/config.mjs';
+import { sessionCandidates,findManifest } from './lib/migration.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));const store=openStore(process.env.DATA_DIR||path.join(root,'data'));const {db}=store;
 const port=Number(process.env.PORT||4317),publicOrigin=process.env.PUBLIC_ORIGIN||(process.env.RENDER_EXTERNAL_HOSTNAME?`https://${process.env.RENDER_EXTERNAL_HOSTNAME}`:`http://localhost:${port}`);
@@ -31,7 +32,7 @@ async function job(user,siteId,kind,fn){
   try{const result=await fn();db.prepare('UPDATE jobs SET status=?,result=? WHERE id=?').run('completed',safeResult(result),jobId);return {jobId,...result};}catch(e){db.prepare('UPDATE jobs SET status=?,result=? WHERE id=?').run('failed',JSON.stringify({message:e instanceof ProviderError?e.message:'Request outcome may be unknown; inspect provider before retrying.'}),jobId);throw e;}
 }
 const cookieDomain=process.env.COOKIE_DOMAIN;
-function cookie(token,clear=false){return `rankleem_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${clear?0:604800}${publicOrigin.startsWith('https:')?'; Secure':''}${cookieDomain?`; Domain=${cookieDomain}`:''}`;}
+function cookie(token,clear=false,name='sitocal_session'){return `${name}=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${clear?0:604800}${publicOrigin.startsWith('https:')?'; Secure':''}${cookieDomain?`; Domain=${cookieDomain}`:''}`;}
 async function handler(req,res){
   const hostname=(req.headers.host||'').split(':')[0].toLowerCase();
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('Cache-Control','no-store');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
@@ -40,14 +41,18 @@ async function handler(req,res){
   const url=new URL(req.url,origin),p=url.pathname;
   try{
     rate(req.socket.remoteAddress||'unknown',180);
-    const token=req.headers.cookie?.match(/(?:^|;\s*)rankleem_session=([^;]+)/)?.[1]||'';
-    const session=db.prepare('SELECT sessions.*,users.email FROM sessions JOIN users ON users.id=sessions.user_id WHERE token=? AND expires>?').get(hash(token),Date.now());
+    let token='',session,cookieName='sitocal_session';
+    for(const [name,value] of sessionCandidates(req.headers.cookie)){
+      const candidate=db.prepare('SELECT sessions.*,users.email FROM sessions JOIN users ON users.id=sessions.user_id WHERE token=? AND expires>?').get(hash(value),Date.now());
+      if(candidate){session=candidate;token=value;cookieName=name;break;}
+    }
+    if(session&&cookieName!=='sitocal_session'&&!p.startsWith('/api/auth/'))res.setHeader('Set-Cookie',[cookie(token),cookie('',true,cookieName)]);
     const user=session?.user_id;
     if(['POST','PUT','PATCH','DELETE'].includes(req.method)){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
       if(user && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.4',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.5',mode:'development-alpha'});
     if(p==='/api/session')return json(res,200,{user:user?{id:user,email:session.email}:null,csrf:session?.csrf||null,googleConfigured:googleReady()});
     if(p==='/api/auth/register'||p==='/api/auth/login'){
       if(req.method!=='POST')throw new ProviderError('Method not allowed',405);rate('auth:'+req.socket.remoteAddress,10);const b=await body(req);const email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>200||password.length<12||password.length>200)throw new ProviderError('Use a valid email and a password of 12–200 characters',400);
@@ -55,7 +60,7 @@ async function handler(req,res){
       if(p.endsWith('register')){if(process.env.ALLOW_SIGNUPS==='false')throw new ProviderError('Registration is closed',403);if(process.env.REGISTRATION_CODE&&hash(String(b.invite||''))!==hash(process.env.REGISTRATION_CODE))throw new ProviderError('A valid registration invite code is required',403);if(account)throw new ProviderError('Account cannot be created with these details. Try signing in.',409);account={id:id(),email};db.prepare('INSERT INTO users VALUES(?,?,?,?)').run(account.id,email,passwordHash(password),new Date().toISOString());}else if(!account||!checkPassword(password,account.password))throw new ProviderError('Email or password is incorrect',401);
       const next=randomBytes(32).toString('hex'),csrf=randomBytes(24).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(hash(next),account.id,csrf,Date.now()+604800000);res.setHeader('Set-Cookie',cookie(next));return json(res,200,{user:{id:account.id,email},csrf});
     }
-    if(p==='/api/auth/logout'&&req.method==='POST'){if(user&&req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed',403);db.prepare('DELETE FROM sessions WHERE token=?').run(hash(token));res.setHeader('Set-Cookie',cookie('',true));return json(res,200,{ok:true});}
+    if(p==='/api/auth/logout'&&req.method==='POST'){if(user&&req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed',403);db.prepare('DELETE FROM sessions WHERE token=?').run(hash(token));res.setHeader('Set-Cookie',cookieName==='sitocal_session'?cookie('',true):[cookie('',true),cookie('',true,cookieName)]);return json(res,200,{ok:true});}
     if(p.startsWith('/api/')&&!user)throw new ProviderError('Sign in to continue',401);
     if(p==='/api/google/start'&&req.method==='POST')return json(res,200,{url:googleStart(db,user)});
     if(p==='/api/google/callback'&&req.method==='GET'){await googleCallback(store,url.searchParams,user);res.writeHead(303,{Location:'/serp?google=connected'});return res.end();}
@@ -64,8 +69,8 @@ async function handler(req,res){
     if(p==='/api/sites'&&req.method==='GET')return json(res,200,{sites:db.prepare('SELECT * FROM sites WHERE user_id=? ORDER BY updated DESC').all(user).map(s=>({...s,data:JSON.parse(s.data)}))});
     if(p==='/api/sites'&&req.method==='POST'){const b=await body(req);if(b.generation==='ai'){const c=connection(user,'openai');const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b);return {...saveSite(user,r.site),usage:r.usage,model:r.model,promptVersion:r.promptVersion};});return json(res,201,generated);}return json(res,201,saveSite(user,b.pages?b:draftSite(b)));}
     if(p==='/api/import'&&req.method==='POST'){
-      const files=unzip(await body(req)),manifest=Object.entries(files).find(([n])=>n==='rankleem.json'||n.endsWith('/rankleem.json'));
-      if(manifest)return json(res,201,saveSite(user,JSON.parse(manifest[1].toString())));
+      const files=unzip(await body(req)),manifest=findManifest(files,validateSite);
+      if(manifest)return json(res,201,saveSite(user,manifest));
       const html=Object.entries(files).filter(([n])=>/\.html?$/i.test(n));if(!html.length)throw new ProviderError('ZIP has no Sitocal manifest or HTML pages',400);
       // Return source text only; client parses in an inert DOM and extracts editable text.
       return json(res,200,{needsMapping:true,pages:html.slice(0,30).map(([name,data])=>({name,html:data.toString('utf8')})),warning:'Arbitrary HTML import extracts headings and paragraphs. Original layout, scripts, media and styling are not preserved.'});
@@ -112,7 +117,7 @@ async function handler(req,res){
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
     if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs'].includes(p))throw new ProviderError('Page not found',404);
-    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');res.end(html.replace('name="rankleem-domain" content=""',`name="rankleem-domain" content="${baseDomain}"`));
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');res.end(html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`));
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
 }
 const server=http.createServer(handler);server.requestTimeout=120000;server.headersTimeout=15000;server.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Sitocal local alpha: http://localhost:${port}`));
