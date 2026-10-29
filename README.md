@@ -91,3 +91,7 @@ BASE_DOMAIN now controls public-domain links and allowed root/subdomains; use pp
 ## Sitocal rebrand checkpoint (2026-10-29)
 Final brand Sitocal, sitocal.com purchased per user. Preserve rankleem.sqlite, session and ZIP manifest identifiers for compatibility with existing projects. Existing Render service/repository remain unchanged. Live domain cutover is pending; see docs/BRAND-DECISION.md for exact values and order.
 
+
+## Version 0.1.2 — fuller website generation
+New drafts include Home, About, Services, Contact and up to eight service pages (4-6 sections each), an optional business brief and updated responsive rendering. Existing saved content and rankleem.json imports remain compatible; content is never automatically regenerated. Preview QA pending because browser automation was unavailable. See docs/DEVELOPMENT-ROADMAP.md for full-platform milestones. AI uses a larger output allowance and may cost more; no live AI validation performed.
+
