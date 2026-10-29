@@ -7,7 +7,7 @@ Owner supplied: AJ Digit, LLC (dba SITOCAL), contact@sitocal.com. Pricing Free /
 
 Validation: syntax checks and all 32 tests passed, including real SVG/source validation, public routes, assets, consent/origin/CSRF handling, authenticated enquiries, honeypot and throttling plus prior builder/editor/export coverage. Browser observed auto rotation, manual tab pause, FAQ search, phone-width (390px) and desktop (1440px) composition, and successful local contact submission with persisted reference. Header/tablet preview had no broken top-level images. No live customer account actions performed.
 
-GitHub/main deployment in progress. Read docs/MARKETING-RELEASE.md for remaining launch decisions. Keep the existing Render disk and encryption key. Current product remains a private alpha.
+PR #3 merged into main at 96c93a9df465638342a859019c898fcb9a9f3ade. All 88 local source files hash-matched the branch before merge. Live health returned HTTP 200 status ok version 0.1.6 on sitocal.com, the Render hostname and app/editor/wp/serp subdomains. Local browser contact submission was independently confirmed as one stored enquiry. No production contact submission or customer-account test was performed. Read docs/MARKETING-RELEASE.md for remaining launch decisions. Keep the existing Render disk and encryption key. Current product remains a private alpha.
 
 # Session 036 — Sitocal identifier migration
 2026-10-29. Version 0.1.5.
