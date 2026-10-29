@@ -22,9 +22,18 @@ test('logged-out landing has complete reference flow, valid anchors and native d
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
   for(const match of html.matchAll(/href="#([^"]+)"/g))assert(ids.includes(match[1]),`Missing section ${match[1]}`);
   for(const id of ['product-preview','features','themes','niches','how-it-works','export','access','faq','get-started'])assert(ids.includes(id));
-  for(const trade of ['plumbing','electrical','cleaning']){assert(html.includes(`id="trade-${trade}"`));assert(html.includes(`for="trade-${trade}"`));}
-  assert.equal((html.match(/name="sample-trade"/g)||[]).length,3);assert.equal((html.match(/<details>/g)||[]).length,8);
-  assert(html.includes('Public pricing and commercial subscriptions are still being prepared.'));
-  assert(!html.includes('<video'));assert(!html.includes('<form'));assert(!html.includes('5-star'));assert(!html.includes('trusted by 1,000'));
-  for(const dest of ['app','editor','wp','serp','publish','integrations','login','domains'])assert(html.includes(`href="/${dest}"`));
+  assert.equal((html.match(/role="tab"/g)||[]).length,7);assert.equal((html.match(/role="tabpanel"/g)||[]).length,7);
+  assert.equal((html.match(/<details /g)||[]).length,12);
+  assert(html.includes('id="contact-form"'));assert(html.includes('Sample review'));assert(html.includes('not yet verified'));
+  for(const t of ['Free','Starter','Growth','Agency','Enterprise','$10','$50','$100'])assert(html.includes(t));
+  for(const dest of ['app','editor','wp','serp','publish','integrations','login','domains'])assert(html.includes('href="/'+dest+'"'));
 });
+
+test('public pages expose operator, draft policy state, useful content and connected navigation',async()=>{
+ const h=await uiHarness();
+ for(const route of ['about','contact','blog','products-services','privacy-policy','terms-and-conditions','refund-policy','service-policy','shipping-policy','api-mcp','google-indexer']){
+  const html=await h.render('public:'+route);assert(html.includes('AJ Digit, LLC'));assert(html.includes('contact@sitocal.com'));assert.equal((html.match(/<h1>/g)||[]).length,1);assert(!html.includes('undefined'));assert(html.includes('/dashboard'));
+ }
+});
+
+test("vendor assets are real SVG images with recorded official sources",async()=>{const {readFile,readdir}=await import("node:fs/promises");const sources=JSON.parse(await readFile(new URL("../docs/BRAND-ASSET-SOURCES.json",import.meta.url),"utf8"));assert.equal(sources.length,23);for(const source of sources){assert(source.asset);assert(!source.pending);const svg=await readFile(new URL("../public/vendors/"+source.file,import.meta.url),"utf8");assert(svg.includes("<svg"),source.id);assert(!/<html|<script|<foreignObject/i.test(svg),source.id);}});

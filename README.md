@@ -1,6 +1,6 @@
 # Sitocal
 
-Working local development alpha, version 0.1.1. Approved brand: Sitocal. Approved design: refined Orchard. **Not deployed to sitocal.com or its subdomains.**
+Private development alpha, version 0.1.6. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
@@ -103,3 +103,13 @@ Approved logo/header/footer/favicon assets and responsive shared design across r
 ## Version0.1.4 — logged-out landing flow
 Reference-inspired long landing with approved Fieldwork identity, native trade previews, feature/theme/workflow/export/access/FAQ sections. No invented reviews, speed or pricing claims.27 automated tests pass; browser visual QA pending. See docs/SITOCAL-LANDING-FLOW.md. Existing review PR remains unmerged.
 
+
+## Marketing and contact enquiries (0.1.6)
+
+The public home page includes rotating product and feature previews, vendor-icon marquee, expanding theme rail, niche icons, sample review layouts, proposed five-plan pricing, FAQ search, contact form and policy pages. Vendor source URLs are recorded in docs/BRAND-ASSET-SOURCES.json. Sample reviews are fictional; launch listings are unverified; API/MCP/indexing and payment processing are not live products.
+
+Public pages: /about, /contact, /blog, /products-services, /api-mcp, /google-indexer and the five footer policy routes. /sign-in, /create-account and /dashboard connect to the existing authentication and workspace flows. Registration settings remain unchanged.
+
+Contact enquiries are validated and stored in the private enquiries table. No email is sent by this release. The service operator can run npm run enquiries:list on the Render service shell to review up to 100 recent messages; its output contains personal data and must not be published. The web API does not expose enquiry records. Configure email delivery and define retention before commercial launch.
+
+Paid prices are owner-supplied; USD/month is the working assumption. Usage quotas, checkout, refund windows and full commercial/legal terms remain to be finalized. Policies identify AJ Digit, LLC (dba SITOCAL), contact@sitocal.com, and are marked launch drafts.

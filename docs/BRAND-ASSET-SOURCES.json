@@ -1,0 +1,168 @@
+[
+  {
+    "id": "github",
+    "name": "GitHub",
+    "origin": "https://github.com",
+    "asset": "https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg",
+    "file": "github.svg"
+  },
+  {
+    "id": "cloudflare",
+    "name": "Cloudflare",
+    "origin": "https://www.cloudflare.com",
+    "asset": "https://www.cloudflare.com/favicon.ico",
+    "file": "cloudflare.svg"
+  },
+  {
+    "id": "vercel",
+    "name": "Vercel",
+    "origin": "https://vercel.com",
+    "asset": "https://assets.vercel.com/image/upload/q_auto/front/favicon/vercel/apple-touch-icon-57x57.png",
+    "file": "vercel.svg"
+  },
+  {
+    "id": "netlify",
+    "name": "Netlify",
+    "origin": "https://www.netlify.com",
+    "asset": "https://www.netlify.com/favicon/icon.svg",
+    "file": "netlify.svg"
+  },
+  {
+    "id": "digitalocean",
+    "name": "DigitalOcean",
+    "origin": "https://www.digitalocean.com",
+    "asset": "https://www.digitalocean.com/_do-www-marketing/3ea1fb0a/_next/static/media/favicon.91372345.svg",
+    "file": "digitalocean.svg"
+  },
+  {
+    "id": "openrouter",
+    "name": "OpenRouter",
+    "origin": "https://openrouter.ai",
+    "asset": "https://openrouter.ai/favicon/glyph.png",
+    "file": "openrouter.svg"
+  },
+  {
+    "id": "resend",
+    "name": "Resend",
+    "origin": "https://resend.com",
+    "asset": "https://resend.com/static/favicons/favicon-marketing@57x57.png?v=1",
+    "file": "resend.svg"
+  },
+  {
+    "id": "wordpress",
+    "name": "WordPress",
+    "origin": "https://wordpress.org",
+    "asset": "https://wordpress.org/",
+    "file": "wordpress.svg",
+    "note": "Unmodified inline WordPress.org logo SVG from the official homepage."
+  },
+  {
+    "id": "elementor",
+    "name": "Elementor",
+    "origin": "https://elementor.com",
+    "asset": "https://elementor.com/wp-content/uploads/2025/10/logo-symbol-1.svg",
+    "file": "elementor.svg"
+  },
+  {
+    "id": "claude",
+    "name": "Claude AI",
+    "origin": "https://claude.ai",
+    "asset": "https://claude.ai/favicon.ico",
+    "file": "claude.svg"
+  },
+  {
+    "id": "codex",
+    "name": "GPT Codex",
+    "origin": "https://openai.com",
+    "pending": false,
+    "asset": "https://developers.openai.com/favicon.png",
+    "file": "codex.svg",
+    "note": "Official developer platform icon used with product label."
+  },
+  {
+    "id": "gemini",
+    "name": "Google Gemini",
+    "origin": "https://gemini.google.com",
+    "pending": false,
+    "asset": "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/Gemini_SparkIcon_.width-500.format-webp.webp",
+    "file": "gemini.svg",
+    "note": "Gemini SparkIcon from the official Google Gemini blog."
+  },
+  {
+    "id": "antigravity",
+    "name": "Google Antigravity",
+    "origin": "https://antigravity.google",
+    "asset": "https://antigravity.google/favicon.svg",
+    "file": "antigravity.svg"
+  },
+  {
+    "id": "render",
+    "name": "Render",
+    "origin": "https://render.com",
+    "asset": "https://render.com/icon.svg?icon.00d01gt742wgb.svg?dpl=c885bb448",
+    "file": "render.svg"
+  },
+  {
+    "id": "serpapi",
+    "name": "SERP API",
+    "origin": "https://serpapi.com",
+    "asset": "https://serpapi.com/favicon.svg",
+    "file": "serpapi.svg"
+  },
+  {
+    "id": "dataforseo",
+    "name": "DataForSEO",
+    "origin": "https://dataforseo.com",
+    "asset": "https://dataforseo.com/wp-content/uploads/2022/04/cropped-favicon_512-1-32x32.png",
+    "file": "dataforseo.svg"
+  },
+  {
+    "id": "semrush",
+    "name": "Semrush",
+    "origin": "https://www.semrush.com",
+    "asset": "https://www.semrush.com/__static__/favicon.37cab19e6995.svg",
+    "file": "semrush.svg"
+  },
+  {
+    "id": "ahrefs",
+    "name": "Ahrefs",
+    "origin": "https://ahrefs.com",
+    "asset": "https://static.ahrefs.com/safari-pinned-tab.svg?v=2",
+    "file": "ahrefs.svg"
+  },
+  {
+    "id": "producthunt",
+    "name": "Product Hunt",
+    "origin": "https://www.producthunt.com",
+    "asset": "https://ph-static.imgix.net/ph-favicon-brand-500.svg",
+    "file": "producthunt.svg"
+  },
+  {
+    "id": "nicklaunches",
+    "name": "Nick Launches",
+    "origin": "https://nicklaunches.com",
+    "asset": "https://nicklaunches.com/favicon-32x32.png",
+    "file": "nicklaunches.svg"
+  },
+  {
+    "id": "findly",
+    "name": "Findly.tools",
+    "origin": "https://findly.tools",
+    "asset": "https://findly.tools/favicon.ico?favicon.1iszoxh437rn3.ico",
+    "file": "findly.svg"
+  },
+  {
+    "id": "dang",
+    "name": "DANG!",
+    "origin": "https://dang.ai",
+    "asset": "https://dang.ai/favicon-16x16.png",
+    "file": "dang.svg"
+  },
+  {
+    "id": "turbo",
+    "name": "Turbo0.com",
+    "origin": "https://turbo0.com",
+    "asset": "https://turbo0.com/favicon-32x32.png",
+    "file": "turbo.svg"
+  }
+]

@@ -15,6 +15,13 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     await Promise.race([once(proc.stdout,'data'),new Promise((_,reject)=>setTimeout(()=>reject(Error('Server startup timed out')),8000))]);
     const call=async(endpoint,{method='GET',body,cookie='',csrf='',headers={}}={})=>{const r=await fetch(origin+endpoint,{method,headers:{'Content-Type':'application/json',Origin:origin,Cookie:cookie,'X-CSRF-Token':csrf,...headers},body:body===undefined?undefined:JSON.stringify(body)});return r;};
     assert.equal((await call('/api/sites')).status,401);
+    for(const route of ['/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/sign-in','/create-account','/dashboard','/api-mcp','/google-indexer'])assert.equal((await call(route)).status,200,route);
+    const message={name:'Test enquiry',email:'fixture@example.invalid',message:'A factual test message for the contact workflow.',consent:'on',topic:'General enquiry'};
+    assert.equal((await call('/api/contact',{method:'POST',body:{...message,consent:''}})).status,400);
+    assert.equal((await call('/api/contact',{method:'POST',body:message,headers:{Origin:'https://evil.example'}})).status,403);
+    const enquiry=await call('/api/contact',{method:'POST',body:message});assert.equal(enquiry.status,201);assert((await enquiry.json()).reference);
+    assert.equal((await call('/api/contact')).status,401);
+    for(const file of ['marketing.js','policies.js','marketing.css','previews/workspace.svg','previews/editor.svg','vendors/github.svg'])assert.equal((await call('/assets/'+file)).status,200,file);
     const entry=await (await call('/')).text();assert(entry.includes('/assets/fieldwork.css'));assert(entry.includes('/assets/landing.css'));assert(entry.includes('/assets/brand/icon.svg'));
     const landingCss=await call('/assets/landing.css');assert.equal(landingCss.status,200);assert(landingCss.headers.get('content-type').startsWith('text/css'));
     for(const name of ['logo','logo-dark','icon','icon-dark']){const r=await call('/assets/brand/'+name+'.svg');assert.equal(r.status,200);assert(r.headers.get('content-type').startsWith('image/svg+xml'));assert((await r.text()).includes('<svg'));}
@@ -23,6 +30,9 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     const hostRequest=host=>new Promise((resolve,reject)=>{const req=httpRequest(origin+'/',{headers:{Host:host}},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve({status:res.statusCode,text:Buffer.concat(chunks).toString()}));});req.on('error',reject);req.end();});
     const dummy=await hostRequest('ppc.pm');assert.equal(dummy.status,200);assert(dummy.text.includes('name="sitocal-domain" content="ppc.pm"'));assert.equal((await hostRequest('evilppc.pm')).status,400);
     const register=await call('/api/auth/register',{method:'POST',body:{email:'test@example.com',password:'unique passphrase 12345',invite:'qa-invite-fixture'}});assert.equal(register.status,200);const cookie=register.headers.get('set-cookie').split(';')[0],auth=await register.json(),csrf=auth.csrf;
+    assert.equal((await call('/api/contact',{method:'POST',cookie,body:message})).status,201);
+    assert.equal((await call('/api/contact',{method:'POST',body:{...message,website:'bot.example'}})).status,400);
+    assert.equal((await call('/api/contact',{method:'POST',body:message})).status,429);
     const priorCookie=cookie.replace('sitocal_session=','previous_session=');
     const continued=await call('/api/session',{cookie:priorCookie});assert.equal((await continued.json()).user.email,'test@example.com');assert(continued.headers.get('set-cookie').includes('sitocal_session='));assert(continued.headers.get('set-cookie').includes('previous_session=;'));
     const second=await call('/api/auth/register',{method:'POST',body:{email:'other@example.com',password:'another passphrase 12345',invite:'qa-invite-fixture'}});const other=second.headers.get('set-cookie').split(';')[0];

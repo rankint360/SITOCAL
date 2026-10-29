@@ -50,9 +50,16 @@ async function handler(req,res){
     const user=session?.user_id;
     if(['POST','PUT','PATCH','DELETE'].includes(req.method)){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
-      if(user && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
+      if(user && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.5',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.6',mode:'development-alpha'});
+    if(p==='/api/contact'&&req.method==='POST'){
+      rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
+      if(b.website)throw new ProviderError('Message could not be accepted',400);
+      const name=String(b.name||'').trim(),email=String(b.email||'').trim(),message=String(b.message||'').trim(),company=String(b.company||'').trim(),topic=String(b.topic||'General enquiry').trim();
+      if(!name||name.length>120||email.length>200||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||message.length<10||message.length>5000||company.length>150||topic.length>100||!['on',true].includes(b.consent))throw new ProviderError('Enter a name, valid email, message (10–5000 characters) and privacy consent',400);
+      const ref=id();db.prepare('INSERT INTO enquiries VALUES(?,?,?,?,?,?,?)').run(ref,name,email,company,topic,message,new Date().toISOString());return json(res,201,{reference:ref,message:'Your message has been saved for team review. Reference: '+ref+'. You can also email contact@sitocal.com directly.'});
+    }
     if(p==='/api/session')return json(res,200,{user:user?{id:user,email:session.email}:null,csrf:session?.csrf||null,googleConfigured:googleReady()});
     if(p==='/api/auth/register'||p==='/api/auth/login'){
       if(req.method!=='POST')throw new ProviderError('Method not allowed',405);rate('auth:'+req.socket.remoteAddress,10);const b=await body(req);const email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>200||password.length<12||password.length>200)throw new ProviderError('Use a valid email and a password of 12–200 characters',400);
@@ -113,10 +120,11 @@ async function handler(req,res){
     }
     if(p.startsWith('/api/'))throw new ProviderError('Endpoint not found',404);
     if(req.method!=='GET')throw new ProviderError('Method not allowed',405);
-    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
+    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/marketing.css':['marketing.css','text/css'],'/assets/marketing.js':['marketing.js','text/javascript'],'/assets/policies.js':['policies.js','text/javascript'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
+    const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs'].includes(p))throw new ProviderError('Page not found',404);
+    if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');res.end(html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`));
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
 }
