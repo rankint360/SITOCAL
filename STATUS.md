@@ -1,5 +1,5 @@
 # STATUS — Sitocal
-Last updated: 2026-10-29 (Asia/Karachi). Session: 029. Version: 0.1.2.
+Last updated: 2026-10-29 (Asia/Karachi). Session: 033. Version: 0.1.3 (local/review; live deployment version not changed).
 
 ## Current deployment checkpoint
 2026-10-29: sitocal.com and www plus app/editor/wp/serp verified by user. User confirms shared-domain sign-in and saved sites accessible. Domain cutover is complete as user-reported; historical pending-cutover statements below are superseded. External integrations and public-production gates remain open.
@@ -160,4 +160,19 @@ Local QA server was stopped after verification. Run npm start from outputs/rankl
 
 
 Release delivery: milestone 0.1.2 prepared on branch codex/website-generation-v012 for review; running main deployment is not changed by this branch. Browser/manual preview QA remains pending.
+
+
+Milestone delivery verified: draft PR https://github.com/rankint360/SITOCAL/pull/1 ; branch codex/website-generation-v012, head a253499. All 14 pushed files hash-match local implementation. Main/live service not modified. Next: review generated preview and perform desktop/mobile QA, then merge/redeploy only after fixing findings.
+
+
+030 / 2026-10-29: User requests complete Fieldwork redesign from uploaded screenshot, explicitly logo first with approval before use in headers/footers. New direction supersedes Orchard; implementation not applied. Built-in imagegen produced outputs/sitocal-logo-concept-01.png; reference copied to outputs/sitocal-fieldwork-reference.png; brief saved SITOCAL-FIELDWORK-DESIGN.md. Concept reviewed for spelling sitocal and intended applications. Logo approval pending; no source, production, DNS or GitHub changes. Do not confuse illustrative reference metrics with live data. Next: user logo feedback/approval, then vector asset preparation and full root/subdomain design-system implementation with QA.
+
+
+031 / 2026-10-29: User requested separate header logo, dark-page logo, site/favicon icon and dark-page icon. Built-in imagegen exports/cleanup had visible alpha noise; discarded from final pack. Authored a shared clean vector interpretation of selected ribbon-S concept with editable Arial wordmark; rasterized vector via Sharp. Final outputs/sitocal-brand-assets contains 4 SVG/transparent PNG pairs, ICO16/32/48, PNG16/32/48/64/180/192/512, webmanifest, preview and usage/prompt documentation. PNG2400x720 horizontal, 1024 square; alpha verified; preview visually inspected. Geometry/wordmark is a production interpretation, not pixel-exact concept extraction. No live source installation or GitHub changes. Entire Fieldwork redesign remains pending implementation after approval checkpoint; user request authorizes preparing asset variants, not assuming final redesign approval.
+
+
+032 / 2026-10-29: User requested social-handle icons. Created outputs/sitocal-social-icons: existing ribbon-S vector master adapted to circle-safe square avatars; dark/light/circular 1080 PNG+SVG and separately named Instagram/Facebook/LinkedIn/X/YouTube/WhatsApp/TikTok PNG exports. Dimensions checked; preview visually inspected. Pack outputs/sitocal-social-icons.zip. No handle availability claims, account creation or social uploads; no application source/GitHub/live changes. Fieldwork platform redesign remains pending.
+
+
+033 / 2026-10-29: User approved logos/icons for use. Implemented Fieldwork shared UI and branded headers/footers/favicon at version0.1.3: dark horizontal navigation, ivory/sage cards, editorial typography, real-data overview/onboarding/portfolio, restyled marketing/auth/editor/converter/SERP/publish/integrations/domains. Added explicit SVG asset allowlist and fieldwork.css; removed remote-font import. Prior v0.1.2 generation work retained. 26 tests pass (new client-render semantic tests and brand-asset API checks). Static linked previews at outputs/sitocal-fieldwork-preview; browser runtime kernel failure after reset means screenshot/viewport/interactive QA pending. Root/subdomain real app actions preserved, no invented chart/lead metrics. Update existing review PR1 on codex/website-generation-v012; no merge/live deploy performed. Preserve database/key/env. Next: review static pages then browser QA and merge/deploy consolidated release.
 
