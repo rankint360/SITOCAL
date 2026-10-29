@@ -1,6 +1,6 @@
-# Continuing Rankleem
+# Continuing Sitocal
 
-Read STATUS.md, README.md, docs/BUILD-REGISTER.md and deploy/DEPLOYMENT.md first. Preserve Rankleem naming and approved Orchard forest/ivory/leaf design. Follow the latest direct user scope over historical MVP deferrals.
+Read STATUS.md, README.md, docs/BUILD-REGISTER.md and deploy/DEPLOYMENT.md first. Preserve Sitocal naming and approved Orchard forest/ivory/leaf design. Follow the latest direct user scope over historical MVP deferrals.
 
 This is Node.js 24 ESM with built-in SQLite and no runtime npm dependencies. Run npm run check and npm test for changes. Tests use disposable temporary databases and fixture network responses; never point them at live customer data or provider accounts.
 
