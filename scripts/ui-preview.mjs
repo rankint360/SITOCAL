@@ -16,7 +16,7 @@ export async function uiHarness(){
 
 export async function createPreviews(target){
   await mkdir(path.join(target,'assets/brand'),{recursive:true});
-  for(const file of ['style.css','fieldwork.css'])await copyFile(path.join(root,'public',file),path.join(target,'assets',file));
+  for(const file of ['style.css','fieldwork.css','landing.css'])await copyFile(path.join(root,'public',file),path.join(target,'assets',file));
   for(const file of ['logo','logo-dark','icon','icon-dark'])await copyFile(path.join(root,'public/brand',file+'.svg'),path.join(target,'assets/brand',file+'.svg'));
   const data=draftSite({business:'Greenleaf Plumbing',city:'Lahore',services:'Drain cleaning, Water heater repair',businessBrief:'Sample business for design review. This is not a live customer account.'});
   const h=await uiHarness();h.setState({session:{user:{email:'preview@example.invalid'}},sites:[{id:'preview',updated:'2026-10-29T00:00:00Z',data}],connections:[]});
@@ -24,7 +24,7 @@ export async function createPreviews(target){
   for(const [name,file]of Object.entries(routes)){
     let body=await h.render(name);
     body=body.replaceAll('/assets/','assets/').replace(/href="\/(app|editor|wp|serp|integrations|domains|publish|login|jobs)(\?[^\"]*)?"/g,(_,r)=>`href="${r==='jobs'?'app':r}.html"`).replaceAll('href="/"','href="index.html"').replace(/src="\/api\/sites\/[^\"]+"/g,'src="sample-site.html"');
-    await writeFile(path.join(target,file+'.html'),`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sitocal Fieldwork / ${file}</title><link rel="stylesheet" href="assets/style.css"><link rel="stylesheet" href="assets/fieldwork.css"></head><body><div style="padding:9px 18px;font:12px Arial;background:#e4ecd9;color:#123f31;text-align:center">STATIC DESIGN PREVIEW · sample account · controls do not save or call providers</div>${body}</body></html>`);
+    await writeFile(path.join(target,file+'.html'),`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sitocal Fieldwork / ${file}</title><link rel="stylesheet" href="assets/style.css"><link rel="stylesheet" href="assets/fieldwork.css"><link rel="stylesheet" href="assets/landing.css"></head><body><div style="padding:9px 18px;font:12px Arial;background:#e4ecd9;color:#123f31;text-align:center">STATIC DESIGN PREVIEW · sample account · controls do not save or call providers</div>${body}</body></html>`);
   }
   const files=staticFiles(data);await writeFile(path.join(target,'sample-site.html'),files['index.html']);
   await writeFile(path.join(target,'README.txt'),'Static Fieldwork design previews, not a live app. Open index.html or app.html. Sample data is labelled. Forms and action buttons are inactive. Browser layout QA pending.\n');
