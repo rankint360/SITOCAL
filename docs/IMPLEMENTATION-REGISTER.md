@@ -1,18 +1,18 @@
-# Rankleem implementation register — session 009
+# Sitocal implementation register — session 009
 
-Date: 2026-10-27 (Asia/Karachi). Source: outputs/rankleem/ . Runnable local alpha, not public production.
+Date: 2026-10-27 (Asia/Karachi). Source: outputs/sitocal/ . Runnable local alpha, not public production.
 
 ## Scope change accepted
 
-The user moved WordPress conversion, Google reporting, multiple repository/hosting providers and domain registrar search into the current build scope. Earlier MVP documents deferred several of these; the latest request supersedes those deferrals. User confirms ownership of rankleem.com. Recommending Render + Cloudflare does not mean hosting or DNS has been configured.
+The user moved WordPress conversion, Google reporting, multiple repository/hosting providers and domain registrar search into the current build scope. Earlier MVP documents deferred several of these; the latest request supersedes those deferrals. User confirms ownership of sitocal.com. Recommending Render + Cloudflare does not mean hosting or DNS has been configured.
 
 | Requirement | Implemented locally | Not yet complete |
 |---|---|---|
-| rankleem.com | Responsive branded landing, real navigation, FAQ, signup path | Actual DNS/TLS/public deployment, production content/legal pages |
-| app.rankleem.com | Accounts, template generator, three styles, project persistence, optional structured-output AI adapter | Organization roles, billing, identity verification/recovery, durable AI queue, live AI validation |
-| editor.rankleem.com | Click-to-edit heading/body/CTA; page selector; SEO text; section add/remove/reorder; revisions/restore; ZIP export | Arbitrary HTML visual fidelity, images/assets, freeform layout/style controls |
-| wp.rankleem.com | Manifest ZIP import; arbitrary HTML text mapping; Elementor native page JSON; Gutenberg blocks + WordPress WXR; Divi 4 shortcode/WXR beta | Real WordPress/Elementor/Divi import validation; Divi 5 native layouts; other builders; full-site kits/media |
-| serp.rankleem.com | Rank/competitor adapter with history; demand/traffic/backlink adapters; Google OAuth PKCE/state, properties, GSC/GA4 reports | Live API validation; scheduled jobs; project-property binding; analytics tag installation; charts/CSV/retention refinements |
+| sitocal.com | Responsive branded landing, real navigation, FAQ, signup path | Actual DNS/TLS/public deployment, production content/legal pages |
+| app.sitocal.com | Accounts, template generator, three styles, project persistence, optional structured-output AI adapter | Organization roles, billing, identity verification/recovery, durable AI queue, live AI validation |
+| editor.sitocal.com | Click-to-edit heading/body/CTA; page selector; SEO text; section add/remove/reorder; revisions/restore; ZIP export | Arbitrary HTML visual fidelity, images/assets, freeform layout/style controls |
+| wp.sitocal.com | Manifest ZIP import; arbitrary HTML text mapping; Elementor native page JSON; Gutenberg blocks + WordPress WXR; Divi 4 shortcode/WXR beta | Real WordPress/Elementor/Divi import validation; Divi 5 native layouts; other builders; full-site kits/media |
+| serp.sitocal.com | Rank/competitor adapter with history; demand/traffic/backlink adapters; Google OAuth PKCE/state, properties, GSC/GA4 reports | Live API validation; scheduled jobs; project-property binding; analytics tag installation; charts/CSV/retention refinements |
 | Source publishing | GitHub, GitLab.com, Bitbucket Cloud adapters; shared configured publish action | Live verification; provider OAuth; auto-create repositories; GitLab listing pagination for >100 root entries |
 | Deploy generated websites | Netlify ZIP, Vercel file submission, Cloudflare Pages Git hook, Render Git-linked trigger | Completion polling/rollback; Cloudflare direct upload; multiple saved destinations/project; branch linkage verification |
 | Registrar search | Cloudflare Registrar availability-check adapter + UI | Live account/API-access validation; more registrar adapters; no purchase functionality requested/implemented |
@@ -22,7 +22,7 @@ The user moved WordPress conversion, Google reporting, multiple repository/hosti
 
 16 automated tests pass: API end-to-end account/project isolation, CSRF, generation/editor/revision/import/export/conversion paths, ZIP integrity/path limits, output escaping, native Elementor schema, Gutenberg/Divi content structure, AI rejection/parsing, SERP semantics, credential encryption and password hashing, and mocked provider payloads. Tests do not authenticate to external services.
 
-Browser QA: landing navigation, disposable local signup, business form → four-page draft → iframe text selection → edit/apply preview → save → persisted reload; corrected dirty/save-state feedback. Converter mobile layout checked at 390px with no horizontal overflow. Desktop captures saved as rankleem-landing-preview.png, rankleem-workspace-preview.png and rankleem-editor-preview.png. Responsive viewport override reset after checking.
+Browser QA: landing navigation, disposable local signup, business form → four-page draft → iframe text selection → edit/apply preview → save → persisted reload; corrected dirty/save-state feedback. Converter mobile layout checked at 390px with no horizontal overflow. Desktop captures saved as sitocal-landing-preview.png, sitocal-workspace-preview.png and sitocal-editor-preview.png. Responsive viewport override reset after checking.
 
 Not verified: live provider APIs, OAuth consent/token exchange, real WordPress installs, Docker build, Render service, Cloudflare records, backups/restore, payment flows or production security/load gates.
 

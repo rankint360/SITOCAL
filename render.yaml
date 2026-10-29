@@ -1,12 +1,12 @@
 # Review plan/disk costs in Render before applying this blueprint.
 services:
   - type: web
-    name: rankleem
+    name: sitocal
     runtime: docker
     plan: starter
     healthCheckPath: /api/health
     disk:
-      name: rankleem-data
+      name: sitocal-data
       mountPath: /app/data
       sizeGB: 1
     envVars:
