@@ -3,7 +3,7 @@
 
 Renamed all current project text and paths to Sitocal, including outputs/sitocal, exports, package and runtime identifiers. Added SQLite snapshot migration, prior-cookie transition and validated older ZIP compatibility. Existing encryption keys and accounts are preserved; private migration backups remain excluded from GitHub and archives. Historical project text is normalized; Git history is retained.
 
-Validation: syntax checks and 30 tests passed, including database rows/secrets/revisions migration, missing/ambiguous database rejection, cookie compatibility, import validation, packaging and builder/editor/export workflows. GitHub/main synchronization and Render deployment are in progress for this checkpoint.
+Validation: syntax checks and 30 tests passed, including database rows/secrets/revisions migration, missing/ambiguous database rejection, cookie compatibility, import validation, packaging and builder/editor/export workflows. PR #2 merged into main at 0c288092660eaa1b3f61fa3579969c4b6e1c8ba9. All 53 source files hash-matched the uploaded branch before merge. sitocal.com health returned HTTP 200 version 0.1.5. Temporary Render hostname briefly returned 502 during rollout; final recovery check follows. Local database migration retained one existing account and one site; production authenticated customer data has not been independently inspected. Source ZIP rebuilt and scanned with zero retired-name matches. Current project text/path scan also returned zero matches. Git history is unchanged.
 
 Continue from outputs/sitocal. Read docs/LEGACY-NAME-AUDIT.md before database rollback. Keep existing Render disk and ENCRYPTION_KEY. Existing private-alpha limitations from earlier checkpoints still apply.
 
