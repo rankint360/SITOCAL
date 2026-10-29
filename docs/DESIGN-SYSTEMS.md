@@ -20,4 +20,4 @@ User selected Orchard. Refined proposal: deep forest #123F31, leaf accent #D6EEA
 
 Session 003: User approved refined Orchard. This supersedes the pending visual approval note above. Naming is the current stage.
 
-Session 008: Product name Rankleem selected. Approved Orchard concept now displays Rankleem. BRAND-DECISION.md is the current naming source of truth.
+Session 008: Product name Sitocal selected. Approved Orchard concept now displays Sitocal. BRAND-DECISION.md is the current naming source of truth.
