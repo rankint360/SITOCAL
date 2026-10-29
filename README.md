@@ -95,3 +95,7 @@ Final brand Sitocal, sitocal.com purchased per user. Preserve rankleem.sqlite, s
 ## Version 0.1.2 — fuller website generation
 New drafts include Home, About, Services, Contact and up to eight service pages (4-6 sections each), an optional business brief and updated responsive rendering. Existing saved content and rankleem.json imports remain compatible; content is never automatically regenerated. Preview QA pending because browser automation was unavailable. See docs/DEVELOPMENT-ROADMAP.md for full-platform milestones. AI uses a larger output allowance and may cost more; no live AI validation performed.
 
+
+## Version0.1.3 — approved Fieldwork UI
+Approved logo/header/footer/favicon assets and responsive shared design across root and app/editor/wp/serp plus supporting screens. Overview uses actual site/page/credential counts with explicit search-data empty state. Static previews: run node scripts/ui-preview.mjs.26 tests pass; actual browser visual/mobile QA remains pending because browser runtime failed to initialize. Review PR1 contains this work plus fuller generation; live site is unchanged until merged/deployed.
+
