@@ -1,14 +1,11 @@
-# Rankleem — brand decision
-Approved by user: 2026-10-27, session 008.
+# Sitocal — final brand decision
 
-Product name: **Rankleem**. Keep this spelling and capitalization in product copy; lowercase rankleem in technical identifiers. Suggested pronunciation: rank-LEEM (not separately confirmed by user).
+Confirmed by user: 2026-10-29. Final product brand: **SITOCAL**, displayed as **Sitocal** in interface copy. User confirms purchasing **sitocal.com** and reports IPO-Pakistan search found no related trademarks. These are user-confirmed facts, not independent legal clearance. Launch: Pakistan first, selected global markets later.
 
-Approved visual direction: refined Orchard, forest/ivory/leaf palette in DESIGN-SYSTEMS.md. Current branded concept: orchard-refined.html. Original five concepts remain historical explorations.
+This supersedes Rankleem and all provisional naming shortlists. Voomark remains historical. Keep approved refined Orchard forest/ivory/leaf design. No Harbor redesign approved. Current lettermark is a provisional lowercase s, not a finished logo.
 
-Product descriptor: AI websites & local search. Proposed product modules: Rankleem Sites, Rankleem SERP and Rankleem Leads. Descriptor/module labels are working copy, not separately approved branding decisions. No logo finalized.
+Host plan: sitocal.com (landing), app.sitocal.com (builder), editor.sitocal.com (editor), wp.sitocal.com (WordPress converter), serp.sitocal.com (search). Existing Render service/repository can continue unchanged; do not create a second service/database just for the brand.
 
-User clarified that brands can differ by only one letter. Do not reject names solely on edit distance or reopen the naming exercise without a concrete reason. Similarity concerns depend on pronunciation, appearance, market and actual use. User selected Rankleem despite earlier discussion; respect the decision.
+Compatibility: source folder outputs/rankleem, package name, rankleem.sqlite database, rankleem_session cookie, rankleem.json ZIP manifest, editor message identifier and domain meta identifier remain stable deliberately. Do not rename persistent storage or secrets casually: that can hide existing accounts/projects or break imports. Visible UI/export copy uses Sitocal. Existing repository anjam775/Rankleum and onrender hostname remain unchanged.
 
-Candidate domain: rankleem.com. Ownership, registration availability and price remain unknown. User has not said they own it and no domain was purchased. Prior HTTPS/RDAP lookup attempts failed; do not interpret this as availability or legal clearance.
-
-Next work: architecture/provider spikes, implementation foundation and approved Orchard UI under Rankleem. Payments, hosting accounts and production release still require concrete configuration; no external services provisioned. Keep product implementation status separate from this completed naming decision.
+DNS cutover is pending. Add/verify all six new hostnames on the same Render service and provision TLS first. Preserve disk and ENCRYPTION_KEY. After verification set BASE_DOMAIN=sitocal.com, PUBLIC_ORIGIN=https://app.sitocal.com, COOKIE_DOMAIN=sitocal.com together. Users sign in again on new domain. Old ppc.pm session cookies cannot transfer. Keep a private copy of old settings for rollback. Google callback will be https://app.sitocal.com/api/google/callback when enabled. No DNS, registrar, hosting environment or OAuth changes made by this branding session.
