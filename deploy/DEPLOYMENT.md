@@ -30,7 +30,7 @@ Sources checked:
 
 ## Prepared deployment procedure (not executed)
 
-1. Put this code in a private repository. Exclude .env, data/, screenshots and local keys. Root directory is this rankleem folder if using the parent workspace repository.
+1. Put this code in a private repository. Exclude .env, data/, screenshots and local keys. Root directory is this sitocal folder if using the parent workspace repository.
 2. Review Render blueprint costs and disk choice, then create the service from render.yaml or Dockerfile. Add persistent disk at /app/data. Runtime HOST=0.0.0.0; Render supplies PORT. Save a 64-hex-character ENCRYPTION_KEY in Render secrets. Never regenerate it on deploy.
 3. Set PUBLIC_ORIGIN=https://app.sitocal.com, COOKIE_DOMAIN=sitocal.com, TRUST_PROXY=true only behind Render's trusted proxy. Keep ALLOWED_HOSTS restricted. Render's generated hostname is accepted via RENDER_EXTERNAL_HOSTNAME for initial checks.
 4. Add each of the five custom hostnames to the service in Render. Follow the exact DNS and verification values it supplies. Cloudflare DNS CNAME records for app/editor/wp/serp point at that same service hostname; the apex uses supported flattening/instructions supplied by Render. Do not guess an IP address. Keep unrelated mail/TXT records intact.
