@@ -91,3 +91,15 @@ BASE_DOMAIN now controls public-domain links and allowed root/subdomains; use pp
 ## Sitocal rebrand checkpoint (2026-10-29)
 Final brand Sitocal, sitocal.com purchased per user. Preserve rankleem.sqlite, session and ZIP manifest identifiers for compatibility with existing projects. Existing Render service/repository remain unchanged. Live domain cutover is pending; see docs/BRAND-DECISION.md for exact values and order.
 
+
+## Version 0.1.2 — fuller website generation
+New drafts include Home, About, Services, Contact and up to eight service pages (4-6 sections each), an optional business brief and updated responsive rendering. Existing saved content and rankleem.json imports remain compatible; content is never automatically regenerated. Preview QA pending because browser automation was unavailable. See docs/DEVELOPMENT-ROADMAP.md for full-platform milestones. AI uses a larger output allowance and may cost more; no live AI validation performed.
+
+
+## Version0.1.3 — approved Fieldwork UI
+Approved logo/header/footer/favicon assets and responsive shared design across root and app/editor/wp/serp plus supporting screens. Overview uses actual site/page/credential counts with explicit search-data empty state. Static previews: run node scripts/ui-preview.mjs.26 tests pass; actual browser visual/mobile QA remains pending because browser runtime failed to initialize. Review PR1 contains this work plus fuller generation; live site is unchanged until merged/deployed.
+
+
+## Version0.1.4 — logged-out landing flow
+Reference-inspired long landing with approved Fieldwork identity, native trade previews, feature/theme/workflow/export/access/FAQ sections. No invented reviews, speed or pricing claims.27 automated tests pass; browser visual QA pending. See docs/SITOCAL-LANDING-FLOW.md. Existing review PR remains unmerged.
+

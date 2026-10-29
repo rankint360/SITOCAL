@@ -1,6 +1,6 @@
 # Continuing Sitocal
 
-Read STATUS.md, README.md, docs/BUILD-REGISTER.md and deploy/DEPLOYMENT.md first. Preserve Sitocal naming and approved Orchard forest/ivory/leaf design. Follow the latest direct user scope over historical MVP deferrals.
+Read STATUS.md, README.md, docs/BUILD-REGISTER.md and deploy/DEPLOYMENT.md first. Preserve Sitocal naming and approved FIELDWORK forest/ivory/sage design. Follow the latest direct user scope over historical MVP deferrals.
 
 This is Node.js 24 ESM with built-in SQLite and no runtime npm dependencies. Run npm run check and npm test for changes. Tests use disposable temporary databases and fixture network responses; never point them at live customer data or provider accounts.
 
@@ -11,5 +11,7 @@ End every working session by updating STATUS.md and the build register, includin
 Keep the private-alpha/public-production distinction explicit. Domain ownership is user-confirmed; hosting provider recommendation is Render + Cloudflare, not permission to purchase a plan or change DNS. User-authorized publishing integrations are application features; no live provider account was connected by the initial build session.
 
 ## Repository destination — mandatory, 2026-10-29
-Use ONLY https://github.com/rankint360/SITOCAL for Sitocal source going forward. User explicitly prohibits using or pushing platform code to anjam775/Rankleem (including its old Rankleum name). Old URLs in historical logs are not active destinations. Read access to new public repository verified; current connected GitHub account reports push:false. Do not attempt old-repository writes as a fallback.
+Use ONLY https://github.com/rankint360/SITOCAL for Sitocal source going forward. User explicitly prohibits using or pushing platform code to anjam775/Rankleem (including its old Rankleum name). Old URLs in historical logs are not active destinations. Read access to new public repository verified; write access verified 2026-10-29. Do not attempt old-repository writes as a fallback.
+
+2026-10-29 latest design override: uploaded FIELDWORK reference supersedes Orchard for upcoming redesign. User approved production logos/icons on 2026-10-29; header/footer/favicon application is authorized. See docs/SITOCAL-FIELDWORK-DESIGN.md. Fieldwork UI is implemented in review branch 0.1.3; never fabricate reference dashboard metrics.
 
