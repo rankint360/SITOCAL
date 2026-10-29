@@ -52,8 +52,9 @@
     "id": "wordpress",
     "name": "WordPress",
     "origin": "https://wordpress.org",
-    "asset": "https://s.w.org/style/images/about/WordPress-logotype-wmark.svg",
-    "file": "wordpress.svg"
+    "asset": "https://wordpress.org/",
+    "file": "wordpress.svg",
+    "note": "Unmodified inline WordPress.org logo SVG from the official homepage."
   },
   {
     "id": "elementor",
