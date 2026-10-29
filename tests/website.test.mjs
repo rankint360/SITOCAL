@@ -16,7 +16,7 @@ test('complete website plan stays editable and produces working internal links',
     assert(html.includes('tel:+923001234567'));
   }
   assert(renderPage(site,site.pages[0],true).includes('data-edit="0:heading"'));
-  const restored=validateSite(JSON.parse(files['rankleem.json']));assert.deepEqual(restored,site);
+  const restored=validateSite(JSON.parse(files['sitocal.json']));assert.deepEqual(restored,site);
   assert(converterFiles(site,'gutenberg')['wordpress.xml'].includes('About Greenleaf Plumbing'));
 });
 
