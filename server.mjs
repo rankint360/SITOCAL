@@ -66,7 +66,7 @@ async function handler(req,res){
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=Object.entries(files).find(([n])=>n==='rankleem.json'||n.endsWith('/rankleem.json'));
       if(manifest)return json(res,201,saveSite(user,JSON.parse(manifest[1].toString())));
-      const html=Object.entries(files).filter(([n])=>/\.html?$/i.test(n));if(!html.length)throw new ProviderError('ZIP has no Rankleem manifest or HTML pages',400);
+      const html=Object.entries(files).filter(([n])=>/\.html?$/i.test(n));if(!html.length)throw new ProviderError('ZIP has no Sitocal manifest or HTML pages',400);
       // Return source text only; client parses in an inert DOM and extracts editable text.
       return json(res,200,{needsMapping:true,pages:html.slice(0,30).map(([name,data])=>({name,html:data.toString('utf8')})),warning:'Arbitrary HTML import extracts headings and paragraphs. Original layout, scripts, media and styling are not preserved.'});
     }
@@ -115,5 +115,5 @@ async function handler(req,res){
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');res.end(html.replace('name="rankleem-domain" content=""',`name="rankleem-domain" content="${baseDomain}"`));
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
 }
-const server=http.createServer(handler);server.requestTimeout=120000;server.headersTimeout=15000;server.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Rankleem local alpha: http://localhost:${port}`));
+const server=http.createServer(handler);server.requestTimeout=120000;server.headersTimeout=15000;server.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Sitocal local alpha: http://localhost:${port}`));
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>{db.close();process.exit(0);}));
