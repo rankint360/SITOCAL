@@ -21,7 +21,7 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     const register=await call('/api/auth/register',{method:'POST',body:{email:'test@example.com',password:'unique passphrase 12345',invite:'qa-invite-fixture'}});assert.equal(register.status,200);const cookie=register.headers.get('set-cookie').split(';')[0],auth=await register.json(),csrf=auth.csrf;
     const second=await call('/api/auth/register',{method:'POST',body:{email:'other@example.com',password:'another passphrase 12345',invite:'qa-invite-fixture'}});const other=second.headers.get('set-cookie').split(';')[0];
     assert.equal((await call('/api/sites',{method:'POST',cookie,body:{business:'Test',city:'Austin'}})).status,403);
-    const create=await call('/api/sites',{method:'POST',cookie,csrf,body:{business:'Austin Flow',city:'Austin',services:'Drain cleaning'}});assert.equal(create.status,201);let site=await create.json();assert.equal(site.data.pages.length,3);
+    const create=await call('/api/sites',{method:'POST',cookie,csrf,body:{business:'Austin Flow',city:'Austin',services:'Drain cleaning'}});assert.equal(create.status,201);let site=await create.json();assert.equal(site.data.pages.length,5);
     assert.equal((await call('/api/sites/'+site.id,{cookie:other})).status,404);
     site.data.pages[0].sections[0].heading='A carefully edited heading';const saved=await call('/api/sites/'+site.id,{method:'PUT',cookie,csrf,body:site.data});assert.equal(saved.status,200);
     const preview=await call(`/api/sites/${site.id}/preview?edit=1`,{cookie});assert.equal(preview.status,200);assert((await preview.text()).includes('A carefully edited heading'));assert(preview.headers.get('content-security-policy').includes("default-src 'none'"));
