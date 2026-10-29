@@ -1,0 +1,10 @@
+# Sitocal logged-out landing page — reference flow
+2026-10-29, version0.1.4. User supplied screenshots ranklocal.cc_landing_page.png and ranklocal.site_landing_page.png. Used section sequencing and product-led presentation; retained approved Fieldwork identity and own copy. No reference brand assets or proprietary text copied.
+
+Flow: sticky dark navigation; centered hero and factual capability tiles; substantial native-radio trade preview; publishing ecosystem; positioning statement; six-feature grid; editor illustration; Orchard/Slate/Clay themes;12 trade examples; search-workspace feature section; three-step workflow; export-option comparison; brief/ZIP entry paths; private-alpha access and planned commercial/team cards;8 FAQ accordions; closing CTA; get-started section; four-column footer.
+
+Native trade radio selector and FAQs require no JS or external network. All account/product CTAs resolve through existing host-aware routing. Demo businesses and editor illustration labelled; no fabricated rankings/reviews/customers/performance guarantees/partner endorsements/prices. No blank video, dummy checkout, unhandled contact form or inaccessible signup promise. Existing public signup closure remains respected through invitation-based access copy. Provider APIs retain configuration/validation caveats. This is a marketing change, not implementation of all advertised roadmap features.
+
+Source: landing() in public/app.js; public/landing.css scoped to the landing page and its classes; loaded after Fieldwork CSS. Server explicit stylesheet route; 0.1.4 version. Shared product screens unchanged in this stage.
+
+Validation: syntax plus27 tests pass, including anchors/IDs, single h1, native controls, real empty-state product screens and API asset delivery. Static preview generated from real landing render code at outputs/sitocal-fieldwork-preview/index.html. Native controls function in static preview; account actions require actual app. Browser visual/mobile QA pending due previously confirmed runtime kernel failure; no screenshot claim. Review PR1 not merged or deployed automatically.
