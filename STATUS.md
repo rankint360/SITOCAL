@@ -1,10 +1,13 @@
-# STATUS — Rankleem
-Last updated: 2026-10-27 (Asia/Karachi). Session: 014. Version: 0.1.1.
+# STATUS — Sitocal
+Last updated: 2026-10-29 (Asia/Karachi). Session: 023. Version: 0.1.1.
+
+## Final brand checkpoint
+SITOCAL finalized; sitocal.com purchased (user-confirmed 2026-10-29). This supersedes historical Rankleem naming and shortlists below. Visible code now uses Sitocal. Existing deployment remains on prior hosts until coordinated domain cutover. Preserve storage/session identifiers; see docs/BRAND-DECISION.md.
 
 ## Authoritative current state
-Working local development alpha implemented in outputs/rankleem/. Brand Rankleem and refined Orchard design are approved. User confirms ownership of rankleem.com. No live domain/DNS/hosting changes made. Selected target: Render for testing, one persistent web service for all five hostnames, Cloudflare DNS. Dummy domain ppc.pm is registered with Hostinger; user has GitHub/Render/Cloudflare accounts. No service, paid resource or DNS changes provisioned.
+Working local development alpha implemented in outputs/rankleem/. Brand Rankleem and refined Orchard design are approved. User confirms ownership of rankleem.com. User deployed the alpha at https://rankleum.onrender.com/ and reports /api/health returned status ok, version 0.1.1, mode development-alpha. DNS cutover and application smoke tests remain pending. Selected target: Render for testing, one persistent web service for all five hostnames, Cloudflare DNS. Dummy domain ppc.pm is registered with Hostinger; user has GitHub/Render/Cloudflare accounts. Render service exists; disk persistence has not yet been verified. No custom-domain DNS changes confirmed.
 
-The platform is not production-ready or publicly deployed. Local template generation/editing/export work; external integrations have code and fixture verification but no live credentials/validation. Production gates, not just account credentials, remain outstanding.
+The platform is deployed on a public Render test URL as a development alpha; it is not production-ready. Local template generation/editing/export work; external integrations have code and fixture verification but no live credentials/validation. Production gates, not just account credentials, remain outstanding.
 
 ## Latest requested scope
 - rankleem.com: public landing/UI.
@@ -104,4 +107,30 @@ Local QA server was stopped after verification. Run npm start from outputs/rankl
 
 
 015 / 2026-10-27: First Render deployment failed at Docker COPY because server.mjs was omitted from the packaging allowlist and therefore the GitHub upload. Earlier 33-file verification checked the incomplete manifest, not runtime completeness. Restored server.mjs to GitHub; fixed packaging with shared source selection and required runtime/Docker COPY input validation; added two regression tests. npm run check and all 20 tests pass; clean archive now contains 36 files. Docker unavailable locally, so actual container build and live health remain pending. User reports REGISTRATION_CODE and ENCRYPTION_KEY generated in Render; no secrets inspected. Next: Render Manual Deploy > Deploy latest commit, verify new main revision and /api/health, then test registration and core workflow before DNS cutover. Keep existing disk and environment settings. No DNS changes made.
+
+
+
+016 / 2026-10-27: User reports deployment is running at https://rankleum.onrender.com/ and /api/health returns {status:ok,version:0.1.1,mode:development-alpha}. This verifies reported server health only; registration, project creation, editing/export, persistent disk/restart and external integrations remain unverified on Render. Next: user creates private test account at /app?signup=1 with REGISTRATION_CODE as invite code, then creates one template website. Retain Orchard design; an unrelated UI preview event is not treated as design approval. No source changes or repeat code tests required for this documentation checkpoint. No DNS cutover yet.
+
+
+
+017 / 2026-10-28: User confirmed live Render account creation and template site generation. Generated content is too basic: 3-4 short pages; richer design and substantial factual page content remain required. User also confirmed editor works, revision saves, refreshed saved copy persists, and ZIP export works. These are user-reported live passes; exported ZIP rendering, WordPress imports, persistence across a Render restart and external integrations remain unverified. Next: verify Render disk mounted at /app/data and account/project persistence after service restart, then improve generator depth and visual quality. No code changes this session; previous 20 passing tests unchanged. No DNS changes confirmed.
+
+
+
+018 / 2026-10-28: User confirmed a disk is listed in Render, restarted the service, and revisited the app: existing website revisions/edits remain. User-reported persistence across service restart passes. Exact disk mount path was not independently inspected. Live checkpoints now passed by user: health, account creation, template generation, editor, revision/save/refresh, ZIP export, restart persistence. Thin generated page content and visual quality remain open. Next deployment checkpoint: Cloudflare zone activation/delegation for ppc.pm, then attach five custom domains to existing Render service and configure shared domain settings; no DNS changes confirmed yet. External provider integrations and WordPress import validation remain pending. No code changes or repeat code tests this session.
+
+
+019 / 2026-10-28: Naming reopened by user; VOOMARK and SITOCAL shortlisted, final decision pending. User reports ppc.pm and www.ppc.pm live after custom-domain host configuration. Four application subdomains/shared sign-in remain pending. No code rename or provider changes performed. Next: evaluate fresh non-Rank brand names; domain availability/trademark checks still pending. See docs/BRAND-DECISION.md.
+
+
+020 / 2026-10-28: Expanded public-source brand screening saved in BRAND-SCREENING-SITOCAL-VOOMARK.md. VOOMARK now paused as recommendation pending review of PTC VuMark phonetic/software proximity; SITOCAL retained conditionally with Sitocal Gold and SiteLocal findings. No legal clearance, verified domain availability, purchase or implementation rename. Official registry searches remain incomplete. Both remain user-shortlisted unless user changes preference.
+
+
+021 / 2026-10-29: Pakistan-first SITOCAL screening updated in BRAND-SCREENING-SITOCAL-VOOMARK.md. No obvious indexed Pakistan software-business match; IPO timeouts and WIPO challenge prevented official trademark search. Domain status still unverified. SITOCAL retained conditionally; official exact/similarity screening and registrar verification pending. No code changes, purchases, filings or rebrand.
+
+
+022 / 2026-10-29: Screened user-proposed Localett, Localitt, Sittus, SitLite, Webizor, Lokelli, Lokaboo, Bildexa, Locazor, Localifier, Loxall. Domains available per user, not independently verified. Best new candidates for further screening: Lokelli (brand sound but C/K/double-L spelling friction), Locazor (strong but loc-a-zor vs locator/locasor spelling), Bildexa (builder association but Bild/Build ambiguity; Swedish automotive company listings). Sitocal remains strongest product fit, no final rename. Relevant uses: Sittus construction software https://sittus.com.br/ ; Lokaboo near-identical sound to Locaboo software https://www.locaboo.com/ ; SitLite resembles SiteLite website service https://www.sitelite.it/ and SaaS https://www.sitelite.com/ ; Webizor digital-agency directory/professional listings, primary identity not verified; Loxall secondary US class24 trademark record serial90215088 and other uses, not a proven SaaS conflict. No obvious relevant indexed exact match surfaced for Localitt, Lokelli or Localifier; this is not clearance. Localett mostly unrelated email occurrence, Locazor personal handle occurrence: do not characterize these as software business conflicts. No official trademark searches for the 11 completed; no purchases/rebrand/code changes.
+
+023 / 2026-10-29: User finalized SITOCAL and confirmed sitocal.com purchased; IPO search no related marks per user. Rebranded visible landing/app/editor/converter/provider/export wording and lettermark to Sitocal, production examples to sitocal.com. Preserved internal database/session/import/editor identifiers and source/repository names for compatibility. Syntax checks and 20 tests pass. Orchard retained. No DNS/env changes; next add and verify sitocal.com plus www/app/editor/wp/serp on existing Render service, then coordinated BASE_DOMAIN/PUBLIC_ORIGIN/COOKIE_DOMAIN cutover. Basic generated content improvement remains pending. GitHub sync prepared in this session.
 
