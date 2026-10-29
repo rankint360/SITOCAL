@@ -130,3 +130,12 @@ Session033 delivery: PR1 updated to Fieldwork+generation scope at d501848;18 fil
 
 034 / 2026-10-29: User requests logged-out landing using two supplied RankLocal reference screenshots' style/section flow with Sitocal Fieldwork system retained. Implemented long-form product-led landing with trade-switching preview, capability facts, ecosystem, feature grid/editor illustration,3 styles/12 niche examples, search tools, workflow/export comparison, brief/ZIP paths, alpha/planned-access cards,8 FAQs, CTA/get-started/footer. Factual copy, no invented testimonials/metrics/prices/contact endpoints. Native trade selector/FAQ work without JS. New landing.css and explicit server asset route; version0.1.4.27 tests pass including landing anchors and controls; static preview refreshed. Browser viewport QA remains pending from runtime failure. Existing PR1 updated, no merge/live deployment. See docs/SITOCAL-LANDING-FLOW.md.
 
+
+Session034 delivery verified: PR1 head279b2ca,12 source/docs files match remote. Local preview and source ZIP refreshed. No live merge/deploy.
+
+
+Session034 integrity correction: server.mjs upload at279b2ca was truncated in tool transport. Restored complete19739-byte source in commit5635975; reverified implementation/asset/test hashes match local code. Prior all-files note is superseded. Review branch only; main untouched. Future transport should read/push large files individually and refuse truncation markers.
+
+
+035 / 2026-10-29: User explicitly requested merge PR1 and audit leftover work/old names. Marked draft ready and merged expected head5635975 into main commit4b2924639c56192967e81a1e61d447fb0152f79d. No other open PRs; comparison confirms feature commits fully included. Node HTTPS health verified HTTP200/version0.1.4 at sitocal.com and sitocal.onrender.com; root/app/editor/wp/serp and landing CSS/logo assets served200. Native PowerShell SSL failed locally; Node trusted HTTPS succeeded. No authenticated live test performed. Legacy audit outputs/LEGACY-NAME-AUDIT.md: no old-named repository paths; internal Rankleem DB/cookie/manifest/editor/meta/schema/package/blueprint/test labels plus WordPress author metadata remain; historical Rankleum URLs in docs only. No blind data/session/import renames. Synchronizing remaining local handoff notes/research docs to main; no unmerged app source remains. Prior27 passing tests apply to unchanged runtime. No old repository accessed/written.
+
