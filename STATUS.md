@@ -1,5 +1,8 @@
 # STATUS — Sitocal
-Last updated: 2026-10-29 (Asia/Karachi). Session: 034. Version: 0.1.4 (local/review; live deployment version not changed).
+Last updated: 2026-10-29 (Asia/Karachi). Session: 035. Version: 0.1.4 (live; verified 2026-10-29).
+
+## Merged release checkpoint
+PR1 merged to main at4b29246. Live health verified0.1.4; root and four app domains respond200. No other openPRs or unmerged feature commits. Historical pending-merge statements below are superseded. See docs/LEGACY-NAME-AUDIT.md.
 
 ## Current deployment checkpoint
 2026-10-29: sitocal.com and www plus app/editor/wp/serp verified by user. User confirms shared-domain sign-in and saved sites accessible. Domain cutover is complete as user-reported; historical pending-cutover statements below are superseded. External integrations and public-production gates remain open.
@@ -181,4 +184,11 @@ Fieldwork delivery verified: PR1 https://github.com/rankint360/SITOCAL/pull/1 he
 
 
 034 / 2026-10-29: User requests logged-out landing using two supplied RankLocal reference screenshots' style/section flow with Sitocal Fieldwork system retained. Implemented long-form product-led landing with trade-switching preview, capability facts, ecosystem, feature grid/editor illustration,3 styles/12 niche examples, search tools, workflow/export comparison, brief/ZIP paths, alpha/planned-access cards,8 FAQs, CTA/get-started/footer. Factual copy, no invented testimonials/metrics/prices/contact endpoints. Native trade selector/FAQ work without JS. New landing.css and explicit server asset route; version0.1.4.27 tests pass including landing anchors and controls; static preview refreshed. Browser viewport QA remains pending from runtime failure. Existing PR1 updated, no merge/live deployment. See docs/SITOCAL-LANDING-FLOW.md.
+
+
+Landing delivery transport check detected truncated server upload at279b2ca; corrected by isolated full-file upload at5635975. Final source hashes match (except local checkpoint notes added after upload). Live main remains unchanged. Preview index/ZIP updated;27 tests pass; browser viewport QA pending.
+
+
+
+035 / 2026-10-29: User explicitly requested merge PR1 and audit leftover work/old names. Marked draft ready and merged expected head5635975 into main commit4b2924639c56192967e81a1e61d447fb0152f79d. No other open PRs; comparison confirms feature commits fully included. Node HTTPS health verified HTTP200/version0.1.4 at sitocal.com and sitocal.onrender.com; root/app/editor/wp/serp and landing CSS/logo assets served200. Native PowerShell SSL failed locally; Node trusted HTTPS succeeded. No authenticated live test performed. Legacy audit outputs/LEGACY-NAME-AUDIT.md: no old-named repository paths; internal Rankleem DB/cookie/manifest/editor/meta/schema/package/blueprint/test labels plus WordPress author metadata remain; historical Rankleum URLs in docs only. No blind data/session/import renames. Synchronizing remaining local handoff notes/research docs to main; no unmerged app source remains. Prior27 passing tests apply to unchanged runtime. No old repository accessed/written.
 
