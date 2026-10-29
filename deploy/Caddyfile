@@ -1,4 +1,4 @@
-rankleem.com, www.rankleem.com, app.rankleem.com, editor.rankleem.com, wp.rankleem.com, serp.rankleem.com {
+sitocal.com, www.sitocal.com, app.sitocal.com, editor.sitocal.com, wp.sitocal.com, serp.sitocal.com {
     encode zstd gzip
     reverse_proxy 127.0.0.1:4317
     header Strict-Transport-Security "max-age=31536000"
