@@ -15,7 +15,8 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     await Promise.race([once(proc.stdout,'data'),new Promise((_,reject)=>setTimeout(()=>reject(Error('Server startup timed out')),8000))]);
     const call=async(endpoint,{method='GET',body,cookie='',csrf='',headers={}}={})=>{const r=await fetch(origin+endpoint,{method,headers:{'Content-Type':'application/json',Origin:origin,Cookie:cookie,'X-CSRF-Token':csrf,...headers},body:body===undefined?undefined:JSON.stringify(body)});return r;};
     assert.equal((await call('/api/sites')).status,401);
-    const entry=await (await call('/')).text();assert(entry.includes('/assets/fieldwork.css'));assert(entry.includes('/assets/brand/icon.svg'));
+    const entry=await (await call('/')).text();assert(entry.includes('/assets/fieldwork.css'));assert(entry.includes('/assets/landing.css'));assert(entry.includes('/assets/brand/icon.svg'));
+    const landingCss=await call('/assets/landing.css');assert.equal(landingCss.status,200);assert(landingCss.headers.get('content-type').startsWith('text/css'));
     for(const name of ['logo','logo-dark','icon','icon-dark']){const r=await call('/assets/brand/'+name+'.svg');assert.equal(r.status,200);assert(r.headers.get('content-type').startsWith('image/svg+xml'));assert((await r.text()).includes('<svg'));}
     assert.equal((await call('/assets/brand/unknown.svg')).status,404);
     const badInvite=await call('/api/auth/register',{method:'POST',body:{email:'test@example.com',password:'unique passphrase 12345',invite:'wrong'}});assert.equal(badInvite.status,403);
