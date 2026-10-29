@@ -1,6 +1,6 @@
-# Rankleem
+# Sitocal
 
-Working local development alpha, version 0.1.0. Approved brand: Rankleem. Approved design: refined Orchard. **Not deployed to rankleem.com or its subdomains.**
+Working local development alpha, version 0.1.1. Approved brand: Sitocal. Approved design: refined Orchard. **Not deployed to sitocal.com or its subdomains.**
 
 ## Run
 
@@ -22,11 +22,11 @@ npm test
 
 | Public hostname after deployment | Local path | Purpose |
 |---|---|---|
-| rankleem.com | / | Public landing page |
-| app.rankleem.com | /app | Account and website workspace |
-| editor.rankleem.com | /editor | Click-to-edit site text, page SEO, sections and revisions |
-| wp.rankleem.com | /wp | Elementor, WordPress/Gutenberg, Divi 4 content exports |
-| serp.rankleem.com | /serp | Rankings, competitors, demand, traffic estimates, backlink summaries and GSC/GA4 |
+| sitocal.com | / | Public landing page |
+| app.sitocal.com | /app | Account and website workspace |
+| editor.sitocal.com | /editor | Click-to-edit site text, page SEO, sections and revisions |
+| wp.sitocal.com | /wp | Elementor, WordPress/Gutenberg, Divi 4 content exports |
+| serp.sitocal.com | /serp | Rankings, competitors, demand, traffic estimates, backlink summaries and GSC/GA4 |
 
 Auxiliary routes: /integrations, /publish, /domains and /jobs. Production links preserve selected project IDs and use the requested subdomains. A single web service can answer all five hostnames; five service accounts or five servers are not required. See deploy/DEPLOYMENT.md.
 
@@ -35,7 +35,7 @@ Auxiliary routes: /integrations, /publish, /domains and /jobs. Production links 
 - Persistent multi-account sign-in, salted scrypt password hashes, hashed sessions, per-account project ownership, same-origin/CSRF checks, host allowlist and request limits.
 - Three static styles; homepage + service pages + contact page from real business inputs. Offline template drafts work with no API. Optional OpenAI structured-output generation uses the account's own key/model, records usage, validates output and never auto-publishes.
 - Page selection, click text to inspect/edit, unsaved preview, section add/remove/reorder, title/description, saved revisions and restore. Isolated iframe preview; output text is escaped.
-- Static ZIP download with HTML and a rankleem.json manifest; Rankleem ZIP reimport; other HTML ZIPs map headings/body text into a new layout. Original arbitrary CSS, media, JavaScript and exact layout are not retained.
+- Static ZIP download with HTML and a rankleem.json manifest; Sitocal ZIP reimport; other HTML ZIPs map headings/body text into a new layout. Original arbitrary CSS, media, JavaScript and exact layout are not retained.
 - Native Elementor heading/text/button widgets, Gutenberg block source plus WordPress WXR draft pages, Divi 4 shortcode/WXR beta. Import instructions included in every conversion ZIP. No claim of pixel-perfect conversion or actual WordPress installation verification.
 - Server-encrypted integration credentials. Credentials never round-trip to the browser. Provider activity records distinguish committed/submitted/triggered/unknown/partial results.
 
@@ -61,7 +61,7 @@ Provider calls time out after 45 seconds and are not automatically retried if ex
 ## Google connection
 
 1. Create a Google Cloud OAuth web client and enable Search Console API, Analytics Admin API and Analytics Data API.
-2. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI in server secrets. Local callback: http://localhost:4317/api/google/callback . Production callback: https://app.rankleem.com/api/google/callback . Register exact URI with Google.
+2. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI in server secrets. Local callback: http://localhost:4317/api/google/callback . Production callback: https://app.sitocal.com/api/google/callback . Register exact URI with Google.
 3. Configure consent/test users as appropriate; public access may need Google verification.
 4. Connect in the SERP Google tab, grant read-only scopes, then load accessible properties. GSC query reports have a three-day delay and cover 28 days; GA4 reports cover 28 days through yesterday.
 
@@ -87,3 +87,7 @@ Read STATUS.md and docs/BUILD-REGISTER.md to continue. Sixteen automated tests p
 
 ## Version 0.1.1 — dummy-domain deployment
 BASE_DOMAIN now controls public-domain links and allowed root/subdomains; use ppc.pm for the selected dummy domain. Leave BASE_DOMAIN and COOKIE_DOMAIN unset during the initial onrender.com smoke test. Optional REGISTRATION_CODE restricts test signup. All 18 tests pass after this update; Docker build and live deployment remain unverified. Follow deploy/PPC-PM-TEST.md checkpoint by checkpoint.
+
+## Sitocal rebrand checkpoint (2026-10-29)
+Final brand Sitocal, sitocal.com purchased per user. Preserve rankleem.sqlite, session and ZIP manifest identifiers for compatibility with existing projects. Existing Render service/repository remain unchanged. Live domain cutover is pending; see docs/BRAND-DECISION.md for exact values and order.
+
