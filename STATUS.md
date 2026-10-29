@@ -1,5 +1,5 @@
 # STATUS — Sitocal
-Last updated: 2026-10-29 (Asia/Karachi). Session: 033. Version: 0.1.3 (local/review; live deployment version not changed).
+Last updated: 2026-10-29 (Asia/Karachi). Session: 034. Version: 0.1.4 (local/review; live deployment version not changed).
 
 ## Current deployment checkpoint
 2026-10-29: sitocal.com and www plus app/editor/wp/serp verified by user. User confirms shared-domain sign-in and saved sites accessible. Domain cutover is complete as user-reported; historical pending-cutover statements below are superseded. External integrations and public-production gates remain open.
@@ -175,4 +175,10 @@ Milestone delivery verified: draft PR https://github.com/rankint360/SITOCAL/pull
 
 
 033 / 2026-10-29: User approved logos/icons for use. Implemented Fieldwork shared UI and branded headers/footers/favicon at version0.1.3: dark horizontal navigation, ivory/sage cards, editorial typography, real-data overview/onboarding/portfolio, restyled marketing/auth/editor/converter/SERP/publish/integrations/domains. Added explicit SVG asset allowlist and fieldwork.css; removed remote-font import. Prior v0.1.2 generation work retained. 26 tests pass (new client-render semantic tests and brand-asset API checks). Static linked previews at outputs/sitocal-fieldwork-preview; browser runtime kernel failure after reset means screenshot/viewport/interactive QA pending. Root/subdomain real app actions preserved, no invented chart/lead metrics. Update existing review PR1 on codex/website-generation-v012; no merge/live deploy performed. Preserve database/key/env. Next: review static pages then browser QA and merge/deploy consolidated release.
+
+
+Fieldwork delivery verified: PR1 https://github.com/rankint360/SITOCAL/pull/1 head d501848, all18 changed files hash-match remote. Main/live unchanged. Static previews and preview ZIP ready. Browser QA limitation remains explicit.
+
+
+034 / 2026-10-29: User requests logged-out landing using two supplied RankLocal reference screenshots' style/section flow with Sitocal Fieldwork system retained. Implemented long-form product-led landing with trade-switching preview, capability facts, ecosystem, feature grid/editor illustration,3 styles/12 niche examples, search tools, workflow/export comparison, brief/ZIP paths, alpha/planned-access cards,8 FAQs, CTA/get-started/footer. Factual copy, no invented testimonials/metrics/prices/contact endpoints. Native trade selector/FAQ work without JS. New landing.css and explicit server asset route; version0.1.4.27 tests pass including landing anchors and controls; static preview refreshed. Browser viewport QA remains pending from runtime failure. Existing PR1 updated, no merge/live deployment. See docs/SITOCAL-LANDING-FLOW.md.
 
