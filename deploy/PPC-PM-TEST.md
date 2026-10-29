@@ -6,7 +6,7 @@ Use small checkpoints. Do not switch nameservers before checking existing mail/w
 
 ## Checkpoint 1 — code in a private GitHub repository
 
-Download the latest rankleem-source.zip from this chat and extract it. Create a private GitHub repository named rankleem-test (or choose your own name). Upload the extracted contents so package.json, server.mjs, Dockerfile, public/ and lib/ are at the repository root. Upload the files, not the ZIP. The source archive excludes runtime databases and secrets; do not upload an old local data/ directory or .env file.
+Download the latest sitocal-source.zip from this chat and extract it. Create a private GitHub repository named sitocal-test (or choose your own name). Upload the extracted contents so package.json, server.mjs, Dockerfile, public/ and lib/ are at the repository root. Upload the files, not the ZIP. The source archive excludes runtime databases and secrets; do not upload an old local data/ directory or .env file.
 
 Checkpoint: open the repository and confirm Dockerfile and package.json appear at the top level. Record repository URL in the register when the user shares it.
 
@@ -64,11 +64,11 @@ Checkpoint: root opens landing; each subdomain opens its correct interface; swit
 
 ## Checkpoint 5 — verify optional integrations separately
 
-1. Download and inspect the offline site ZIP; import it back into Rankleem.
+1. Download and inspect the offline site ZIP; import it back into Sitocal.
 2. Test Elementor, Gutenberg/WXR and Divi4-beta exports on a disposable WordPress installation. Divi5 native export remains unimplemented.
 3. Configure OpenAI with your own API key/model; run one small draft and review token usage/content. Paid usage separate from Render.
 4. Connect an initialized test repository and push one generated website. Never target an important existing site during initial QA.
-5. Connect one deployment target, submit a test build, then verify its final state in the hosting dashboard; Rankleem submission is not proof that it is live.
+5. Connect one deployment target, submit a test build, then verify its final state in the hosting dashboard; Sitocal submission is not proof that it is live.
 6. Add DataForSEO credentials and run a single rank check for one domain, one keyword, one supported location/device. Review provider costs and competitors. Then test demand/traffic/backlinks separately; traffic estimates are not GA4 sessions.
 7. Configure Google Cloud consent/test users, OAuth client and exact callback URI; enable Search Console, Analytics Admin and Analytics Data APIs. Link accessible properties and compare a small report with Google's UI. Persistent project/property binding and analytics-tag insertion remain pending.
 8. Test registrar availability lookup with an eligible Cloudflare Registrar account. No domain purchase action exists.
@@ -85,4 +85,4 @@ Record real pass/fail results rather than assuming adapters are certified. Keep 
 - https://www.hostinger.com/support/1696789-how-to-change-nameservers-at-hostinger/
 
 ## Checkpoint 1 completed — session 014
-User selected https://github.com/anjam775/Rankleum . Code is on main with deploy files at repository root. This repository is public, superseding the suggested private repository setup. Uploaded clean source was checked against the remote tree/blob hashes. Next: Render New → Web Service → connect anjam775/Rankleum → Docker. No Render service exists yet.
+User selected retired repository (do not use) . Code is on main with deploy files at repository root. This repository is public, superseding the suggested private repository setup. Uploaded clean source was checked against the remote tree/blob hashes. Next: Render New → Web Service → connect retired repository → Docker. No Render service exists yet.
