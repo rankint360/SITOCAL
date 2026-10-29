@@ -1,0 +1,10 @@
+# Sitocal Fieldwork design system
+2026-10-29. User approved production logos, site icons and social profile assets. Approved upload sitocal-designs.png (FIELDWORK) supersedes Orchard for platform UI. Root and app/editor/wp/serp plus auth/integrations/domains/publish/activity share this system.
+
+Tokens: forest #123F31; green #226B50; sage #DCE8D1; warm ivory #F7F6EE; white panels; muted thin borders. Arial/Segoe body, Georgia editorial headings; no remote-font dependency. Dark horizontal navigation, compact cards, table portfolio, genuine onboarding state. Reference chart/metrics are illustrative: do not manufacture real ranking, traffic, leads or publication state. Overview reports saved sites/page counts/credential count; search-data aggregation remains pending and is labelled clearly.
+
+Assets: public/brand/logo.svg for light backgrounds; logo-dark.svg for dark headers/footers; icon.svg for favicon/site identity; icon-dark.svg for dark surfaces. Shared vector S master; editable wordmark text uses Arial fallback. SVG is served only through an explicit four-file allowlist, never arbitrary filesystem paths. CSP retains same-origin image policy. Source packaging includes public/brand.
+
+Root header/footer use ivory logo on forest, workspaces use dark-header and light-footer logos, auth uses primary logo. Responsive CSS overrides in public/fieldwork.css, loaded after base style.css. Actual platform functions retain event/action contracts. Source preview version0.1.3 includes prior unmerged v0.1.2 generation work. Review PR1 is combined, not live until merged/deployed.
+
+QA: syntax and26 automated tests pass; client-render harness covers all core screen shells, navigation, empty states and escaped real-data portfolio. API test checks favicon/CSS/brand assets. Browser CUA kernel asset error persists even after reset, so viewport/screenshot/interactive browser verification remains pending. Static preview directory provides clearly labelled sample-account markup; inactive controls never submit API calls. Validate desktop/mobile, shared sign-in and editor/export on actual browser before production release.
