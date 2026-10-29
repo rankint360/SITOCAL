@@ -35,7 +35,7 @@ Auxiliary routes: /integrations, /publish, /domains and /jobs. Production links 
 - Persistent multi-account sign-in, salted scrypt password hashes, hashed sessions, per-account project ownership, same-origin/CSRF checks, host allowlist and request limits.
 - Three static styles; homepage + service pages + contact page from real business inputs. Offline template drafts work with no API. Optional OpenAI structured-output generation uses the account's own key/model, records usage, validates output and never auto-publishes.
 - Page selection, click text to inspect/edit, unsaved preview, section add/remove/reorder, title/description, saved revisions and restore. Isolated iframe preview; output text is escaped.
-- Static ZIP download with HTML and a rankleem.json manifest; Sitocal ZIP reimport; other HTML ZIPs map headings/body text into a new layout. Original arbitrary CSS, media, JavaScript and exact layout are not retained.
+- Static ZIP download with HTML and a sitocal.json manifest; Sitocal ZIP reimport; other HTML ZIPs map headings/body text into a new layout. Original arbitrary CSS, media, JavaScript and exact layout are not retained.
 - Native Elementor heading/text/button widgets, Gutenberg block source plus WordPress WXR draft pages, Divi 4 shortcode/WXR beta. Import instructions included in every conversion ZIP. No claim of pixel-perfect conversion or actual WordPress installation verification.
 - Server-encrypted integration credentials. Credentials never round-trip to the browser. Provider activity records distinguish committed/submitted/triggered/unknown/partial results.
 
@@ -89,11 +89,11 @@ Read STATUS.md and docs/BUILD-REGISTER.md to continue. Sixteen automated tests p
 BASE_DOMAIN now controls public-domain links and allowed root/subdomains; use ppc.pm for the selected dummy domain. Leave BASE_DOMAIN and COOKIE_DOMAIN unset during the initial onrender.com smoke test. Optional REGISTRATION_CODE restricts test signup. All 18 tests pass after this update; Docker build and live deployment remain unverified. Follow deploy/PPC-PM-TEST.md checkpoint by checkpoint.
 
 ## Sitocal rebrand checkpoint (2026-10-29)
-Final brand Sitocal, sitocal.com purchased per user. Preserve rankleem.sqlite, session and ZIP manifest identifiers for compatibility with existing projects. Existing Render service/repository remain unchanged. Live domain cutover is pending; see docs/BRAND-DECISION.md for exact values and order.
+Final brand Sitocal, sitocal.com purchased per user. Preserve sitocal.sqlite, session and ZIP manifest identifiers for compatibility with existing projects. Existing Render service/repository remain unchanged. Live domain cutover is pending; see docs/BRAND-DECISION.md for exact values and order.
 
 
 ## Version 0.1.2 — fuller website generation
-New drafts include Home, About, Services, Contact and up to eight service pages (4-6 sections each), an optional business brief and updated responsive rendering. Existing saved content and rankleem.json imports remain compatible; content is never automatically regenerated. Preview QA pending because browser automation was unavailable. See docs/DEVELOPMENT-ROADMAP.md for full-platform milestones. AI uses a larger output allowance and may cost more; no live AI validation performed.
+New drafts include Home, About, Services, Contact and up to eight service pages (4-6 sections each), an optional business brief and updated responsive rendering. Existing saved content and sitocal.json imports remain compatible; content is never automatically regenerated. Preview QA pending because browser automation was unavailable. See docs/DEVELOPMENT-ROADMAP.md for full-platform milestones. AI uses a larger output allowance and may cost more; no live AI validation performed.
 
 
 ## Version0.1.3 — approved Fieldwork UI
