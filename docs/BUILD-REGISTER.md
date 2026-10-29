@@ -1,3 +1,14 @@
+# Session 037 — Public website and supporting pages
+2026-10-30 (Asia/Karachi). Version 0.1.6.
+
+Rebuilt the logged-out home page in Fieldwork style: two rotating image-tab sections, 18-brand slow marquee, auto-expanding three-style theme rail, 12 niche icons, focused process, planned indexing and API/MCP sections, six explicitly fictional review layouts, five owner-priced plans, six planned payment methods, unverified launch-watchlist logos, searchable categorized FAQs, final CTA and durable contact form. Added About, Contact, Blog (three original field notes), Products & Services, five policy pages, API/MCP and indexing roadmap pages. Account aliases route to actual sign-in, invitation signup and dashboard flows.
+
+Owner supplied: AJ Digit, LLC (dba SITOCAL), contact@sitocal.com. Pricing Free / $10 / $50 / $100 / custom; USD per month assumed, quotas unannounced. Checkout, payment providers, public API/MCP, indexing engine, verified testimonials/listings and final legal terms are not implemented or claimed. Policies are launch drafts. Enquiries are saved privately, not emailed; npm run enquiries:list is an operator-only shell utility. Do not publish its personal-data output.
+
+Validation: syntax checks and all 31 tests passed, including public routes, assets, consent/origin/CSRF handling, authenticated enquiries, honeypot and throttling plus prior builder/editor/export coverage. Browser observed auto rotation, manual tab pause, FAQ search, phone-width (390px) and desktop (1440px) composition, and successful local contact submission with persisted reference. Header/tablet preview had no broken top-level images. No live customer account actions performed.
+
+GitHub/main deployment in progress. Read docs/MARKETING-RELEASE.md for remaining launch decisions. Keep the existing Render disk and encryption key. Current product remains a private alpha.
+
 # Session 036 — Sitocal identifier migration
 2026-10-29. Version 0.1.5.
 
