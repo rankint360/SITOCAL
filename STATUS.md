@@ -1,3 +1,10 @@
+# Session 040 — Technology scroller update
+2026-10-30 (Asia/Karachi). Version 0.1.8.
+
+Added Namecheap to the logged-out homepage technology scroller with a locally served Simple Icons SVG and recorded asset provenance. Resend already existed and remains once per marquee loop. Updated the asset inventory expectation to 24. Preserved SITOCAL naming following the owner decision to defer rebranding.
+
+Validation: npm run check and all 47 tests pass. Published source changes directly to main as authorized; live marketing.js contains both vendors and both SVG assets return HTTP 200 after Render rollout. No integration availability changes. Existing OAuth/provider setup limitations remain. Next action: continue platform development and configure provider credentials directly in Render when ready.
+
 # Session 039 — Social authentication and dedicated product landings
 2026-10-30 (Asia/Karachi). Version 0.1.8.
 
