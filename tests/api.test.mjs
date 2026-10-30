@@ -10,11 +10,18 @@ import { unzip } from '../lib/archive.mjs';
 
 test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and missing-provider honesty',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'sitocal-api-')),origin='http://localhost:4318';
-  const proc=spawn(process.execPath,['server.mjs'],{cwd:new URL('..',import.meta.url),env:{...process.env,DATA_DIR:dir,PORT:'4318',PUBLIC_ORIGIN:origin,HOST:'127.0.0.1',BASE_DOMAIN:'ppc.pm',ALLOWED_HOSTS:'localhost,127.0.0.1',ALLOW_SIGNUPS:'true',REGISTRATION_CODE:'qa-invite-fixture',GOOGLE_CLIENT_ID:'',GOOGLE_CLIENT_SECRET:''},stdio:['ignore','pipe','pipe']});
+  const proc=spawn(process.execPath,['server.mjs'],{cwd:new URL('..',import.meta.url),env:{...process.env,DATA_DIR:dir,PORT:'4318',PUBLIC_ORIGIN:origin,HOST:'127.0.0.1',BASE_DOMAIN:'ppc.pm',ALLOWED_HOSTS:'localhost,127.0.0.1',ALLOW_SIGNUPS:'true',REGISTRATION_CODE:'qa-invite-fixture',GOOGLE_CLIENT_ID:'',GOOGLE_CLIENT_SECRET:'',AUTH_GOOGLE_CLIENT_ID:'',AUTH_GOOGLE_CLIENT_SECRET:'',AUTH_GITHUB_CLIENT_ID:'',AUTH_GITHUB_CLIENT_SECRET:'',AUTH_LINKEDIN_CLIENT_ID:'',AUTH_LINKEDIN_CLIENT_SECRET:''},stdio:['ignore','pipe','pipe']});
   try{
     await Promise.race([once(proc.stdout,'data'),new Promise((_,reject)=>setTimeout(()=>reject(Error('Server startup timed out')),8000))]);
     const call=async(endpoint,{method='GET',body,cookie='',csrf='',headers={}}={})=>{const r=await fetch(origin+endpoint,{method,headers:{'Content-Type':'application/json',Origin:origin,Cookie:cookie,'X-CSRF-Token':csrf,...headers},body:body===undefined?undefined:JSON.stringify(body)});return r;};
     assert.equal((await call('/api/sites')).status,401);
+    const methods=await(await call('/api/auth/methods')).json();assert.deepEqual(methods.providers.map(p=>p.provider),['google','github','linkedin']);assert(!JSON.stringify(methods).includes('CLIENT_SECRET'));
+    assert.equal((await call('/api/auth/oauth/google/start',{method:'POST',body:{mode:'login'}})).status,409);
+    assert.equal((await call('/api/auth/oauth/google/start',{method:'POST',body:{mode:'link'}})).status,403);
+    const failedCallback=await fetch(origin+'/api/auth/oauth/google/callback?state=invalid&code=fixture',{redirect:'manual'});assert.equal(failedCallback.status,303);assert(failedCallback.headers.get('location').includes('auth_error='));assert(!failedCallback.headers.get('set-cookie').includes('sitocal_session='));
+    const indexerEntry=await(await call('/google-indexer')).text();assert(indexerEntry.includes('Your pages are live.'));assert(indexerEntry.includes('rel="canonical"'));
+    const serpEntry=await(await call('/serp-home')).text();assert(serpEntry.includes('Before you build.'));assert(serpEntry.includes('Illustrative interface'));
+    for(const asset of ['auth.js','auth.css','products.css','product-landings.js'])assert.equal((await call('/assets/'+asset)).status,200);
     for(const route of ['/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/sign-in','/create-account','/dashboard','/api-mcp','/google-indexer'])assert.equal((await call(route)).status,200,route);
     const message={name:'Test enquiry',email:'fixture@example.invalid',message:'A factual test message for the contact workflow.',consent:'on',topic:'General enquiry'};
     assert.equal((await call('/api/contact',{method:'POST',body:{...message,consent:''}})).status,400);
@@ -69,6 +76,10 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     assert.equal((await call('/api/google/start',{method:'POST',cookie,csrf,body:{}})).status,409);
     const crossOrigin=await call('/api/sites',{method:'POST',cookie,csrf,headers:{Origin:'https://evil.example'},body:{}});assert.equal(crossOrigin.status,403);
     for(const page of ['/','/app','/editor','/wp','/serp','/domains','/publish','/integrations'])assert.equal((await call(page)).status,200);
+    assert.equal((await call('/api/account/methods',{cookie})).status,200);
+    assert.equal((await call('/api/account/password',{method:'POST',cookie,body:{currentPassword:'unique passphrase 12345',password:'another fixture password 12345'}})).status,403);
+    assert.equal((await call('/api/account/password',{method:'POST',cookie,csrf,body:{currentPassword:'wrong',password:'another fixture password 12345'}})).status,403);
+    assert.equal((await call('/api/account/password',{method:'POST',cookie,csrf,body:{currentPassword:'unique passphrase 12345',password:'another fixture password 12345'}})).status,200);
     const logout=await call('/api/auth/logout',{method:'POST',cookie,csrf,body:{}});assert.equal(logout.status,200);assert.equal((await call('/api/sites',{cookie})).status,401);
   }finally{proc.kill();await once(proc,'exit');const target=resolve(dir),base=resolve(tmpdir())+sep;if(!target.startsWith(base)||!target.split(sep).pop().startsWith('sitocal-api-'))throw Error('Unsafe test cleanup');rmSync(target,{recursive:true,force:true});}
 });
