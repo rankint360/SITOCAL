@@ -26,7 +26,7 @@ test('logged-out landing has complete reference flow, valid anchors and native d
   for(const match of html.matchAll(/href="#([^"]+)"/g))assert(ids.includes(match[1]),`Missing section ${match[1]}`);
   for(const id of ['product-preview','features','themes','niches','how-it-works','export','access','faq','get-started'])assert(ids.includes(id));
   assert.equal((html.match(/role="tab"/g)||[]).length,7);assert.equal((html.match(/role="tabpanel"/g)||[]).length,7);
-  assert.equal((html.match(/<details /g)||[]).length,12);
+  assert.equal((html.match(/<details data-faq-category=/g)||[]).length,12);
   assert(html.includes('id="contact-form"'));assert(html.includes('Sample review'));assert(html.includes('not yet verified'));
   for(const t of ['Free','Starter','Growth','Agency','Enterprise','$10','$50','$100'])assert(html.includes(t));
   for(const dest of ['app','editor','wp','serp','publish','integrations','login','domains','billing'])assert(html.includes('href="/'+dest+'"'));
@@ -40,3 +40,12 @@ test('public pages expose operator, draft policy state, useful content and conne
 });
 
 test("vendor assets are real SVG images with recorded official sources",async()=>{const {readFile,readdir}=await import("node:fs/promises");const sources=JSON.parse(await readFile(new URL("../docs/BRAND-ASSET-SOURCES.json",import.meta.url),"utf8"));assert.equal(sources.length,24);for(const source of sources){assert(source.asset);assert(!source.pending);const svg=await readFile(new URL("../public/vendors/"+source.file,import.meta.url),"utf8");assert(svg.includes("<svg"),source.id);assert(!/<html|<script|<foreignObject/i.test(svg),source.id);}});
+
+test('public navigation exposes all niche guides, tools and honest preview states',async()=>{
+ const {nichePacks,siteLanguages}=await import('../public/navigation.js');assert.equal(siteLanguages.length,25);assert.equal(new Set(siteLanguages.map(l=>l[0])).size,25);const h=await uiHarness();const home=await h.render('landing');
+ assert.equal(nichePacks.length,21);
+ for(const [slug,name] of nichePacks){assert(home.includes('href="/niche-packs/'+slug+'"'));const html=await h.render('public:niche-packs/'+slug);assert(html.includes(name));assert(html.includes('Not a preloaded specialist model'));}
+ assert(home.includes('data-site-theme'));assert(home.includes('aria-controls="site-menu"'));assert(home.includes('🇬🇧 EN'));assert(home.includes('AJ Digit, LLC. [d/b/a SITOCAL]'));
+ const comparison=await h.render('public:why-sitocal');assert(comparison.includes('<table>'));assert(comparison.includes('not a benchmark'));
+ const leadsmart=await h.render('public:leadsmart-coverage-intelligence');assert(leadsmart.includes('Not an active coverage engine'));
+});

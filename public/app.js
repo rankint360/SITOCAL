@@ -1,3 +1,4 @@
+import {initAppearance} from './navigation.js';
 import { authView,loadAuthMethods,accountScreen,initAuthEvents } from './auth.js';
 import { serpLanding,indexerLanding,initProductLanding } from './product-landings.js';
 import { toolScreen,initToolEvents } from './tools.js';
@@ -86,5 +87,6 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 async function init(){if(route==='serp-landing'){serpHome();return;}if(route==='google-indexer'){indexerHome();return;}if(route==='landing'){landing();return;}if(publicRoutes.includes(route)){const p=publicPage(route,{href,darkLogo});root.innerHTML=p.html;document.title=p.title+' — Sitocal';initMarketing(root);return;}if(route==='register'){auth(true);return;}try{session=await api('/api/session');if(!session.user){auth(new URLSearchParams(location.search).get('signup')==='1');return;}if(route==='login'){location.href=href(loginDestination());return;}await refresh();await screen();}catch(e){root.innerHTML=`<div class="auth panel"><h1>Let’s reconnect.</h1><p>${esc(e.message)}</p><button class="btn primary" id="reload">Try again</button></div>`;document.getElementById('reload').onclick=()=>location.reload();}}
 initAuthEvents({api,notify,returnTo:()=>['serp','indexing','developer','billing','editor','wp','account'].includes(route)?'/'+route:new URLSearchParams(location.search).get('returnTo')||'/app'});
 initToolEvents({api,notify,refreshScreen:screen});
-init();
+initAppearance();
+if(location.hostname.endsWith('.translate.goog')){initMarketing(root);}else init();
 

@@ -1,3 +1,12 @@
+# Session 042 — Expanded navigation, appearance and public pages
+2026-10-30 (Asia/Karachi). Version 0.1.9.
+
+Built a shared public header with Home, Features, Why Sitocal comparison, About Us, Blog, Pricing, a 21-niche dropdown and seven-tool megamenu. Added dedicated features/comparison/pricing/niche directory and individual guide routes plus an explicitly planned LeadSmart Coverage Intelligence page. Niche guides are starting briefs, not preloaded trained packs. Shared header also appears on SERP and Google Indexer landing pages.
+
+Added a persistent light/dark theme toggle, device-default appearance, mobile menu, outside-click/Escape dismissal, preview-tab icons, 42px technology marks and exact copyright AJ Digit, LLC. [d/b/a SITOCAL]. Added 25 major-language choices with flags/codes in the upper-right footer: external Google Translate opens only canonical public pages after selection and Translate action; private workspace remains English. Native maintained translations are not claimed. Google availability/quality and regional restrictions apply. No account tokens, query strings, form content or private URLs are sent by the selector. Public pages now render initial content and canonical metadata on the server.
+
+Validation: syntax and all 48 tests pass. Browser verified dark/bright toggling, persistence across reload/navigation, all seven tools, all 21 phone-menu niche links, 390px no page overflow and 25 language options. Google translated content and real provider workflows remain external/unverified. Publishing release to main is in progress. See docs/PUBLIC-NAVIGATION.md for behavior and limitations. Existing private-alpha/OAuth/payment/provider configuration limitations remain.
+
 # Session 041 — Pricing and footer polish
 2026-10-30 (Asia/Karachi). Version 0.1.8.
 
