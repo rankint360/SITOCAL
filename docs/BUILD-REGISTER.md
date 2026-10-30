@@ -1,3 +1,10 @@
+# Session 043 — Expanded niche services and icon set
+2026-10-30 (Asia/Karachi). Version 0.1.9.
+
+Added Tree Care, Handyman, Locksmith, Pool Service, Pressure Washing, Garage Doors, Damage Restoration, Junk Removal and Carpet Cleaning. Header dropdown now has 30 services, each with its own relevant repository-native SVG line icon in a sage tile. The same icons appear in the niche directory and individual guide pages, including dark-theme and reduced-motion styles. New guides inherit existing public routes and SSR. Guides remain business brief starting points, not preloaded trained packs.
+
+Validation: syntax checks and all 50 tests pass; all 30 generated niche icons are distinct. Changes published directly to main. Live verified: /niche-packs returned 200 with 30 header icons and 30 directory icons; all nine new niche-guide URLs returned 200 after Render restart. Existing public-translation, provider configuration and private-alpha limitations remain. Next action: continue platform development.
+
 # Session 042 — Expanded navigation, appearance and public pages
 2026-10-30 (Asia/Karachi). Version 0.1.9.
 
