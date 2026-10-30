@@ -6,13 +6,13 @@ import { draftSite,staticFiles } from '../lib/sites.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 
 export async function uiHarness(){
-  const elements={};
+  const elements={},handlers={};
   const element=id=>elements[id]||(elements[id]={innerHTML:'',showModal(){},close(){}});
-  const context=vm.createContext({document:{getElementById:element,querySelector:()=>({content:''}),addEventListener(){}},window:{addEventListener(){}},location:{hostname:'localhost',pathname:'/app',search:''},URLSearchParams,console});
+  const context=vm.createContext({document:{getElementById:element,querySelector:()=>({content:''}),addEventListener(type,handler){(handlers[type]??=[]).push(handler);}},window:{addEventListener(){}},location:{hostname:'localhost',pathname:'/app',search:''},URLSearchParams,console});
   for(const file of ['navigation.js','policies.js','marketing.js','tools.js','auth.js','product-landings.js']){const js=(await readFile(path.join(root,'public',file),'utf8')).replace(/^import .*;$/mg,'').replace(/export /g,'');vm.runInContext(js,context);}
   const source=(await readFile(path.join(root,'public/app.js'),'utf8')).replace(/^if\(location.hostname.endsWith.*$/m,'').replace(/^import .*;$/mg,'').replace(/^initToolEvents\(.*$/mg,'').replace(/^initAuthEvents\(.*$/mg,'').replace(/^initAppearance\(.*$/mg,'');
   vm.runInContext(source,context);
-  return {elements,setState(state){vm.runInContext(`session=${JSON.stringify(state.session)};sites=${JSON.stringify(state.sites||[])};connections=${JSON.stringify(state.connections||[])};site=null;`,context);},async render(name){await vm.runInContext(name.startsWith('public:')?'root.innerHTML=publicPage('+JSON.stringify(name.slice(7))+',{href,darkLogo}).html':name==='login'?'auth(false)':name+'()',context);let html=element('root').innerHTML;if(name==='serp')html=html.replace('<div id="serp-content"></div>',`<div id="serp-content">${element('serp-content').innerHTML}</div>`);return html;}};
+  return {elements,async dispatchSubmit(event){for(const handler of handlers.submit||[])await handler(event);},setState(state){vm.runInContext(`session=${JSON.stringify(state.session)};sites=${JSON.stringify(state.sites||[])};connections=${JSON.stringify(state.connections||[])};site=null;`,context);},async render(name){await vm.runInContext(name.startsWith('public:')?'root.innerHTML=publicPage('+JSON.stringify(name.slice(7))+',{href,darkLogo}).html':name==='login'?'auth(false)':name+'()',context);let html=element('root').innerHTML;if(name==='serp')html=html.replace('<div id="serp-content"></div>',`<div id="serp-content">${element('serp-content').innerHTML}</div>`);return html;}};
 }
 
 export async function createPreviews(target){
