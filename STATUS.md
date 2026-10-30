@@ -5,7 +5,7 @@ Verified PR #1, #2 and #3 already merged; all five policy pages were published (
 
 Validation: 38 tests passing in the current build, covering prior workflows plus scoped auth, API idempotency/revocation/ownership, quotas, verified Google property boundaries, queued failures/CSV, Stripe signature/replay/paid-state handling and manual-grant expiry. Browser verified a disposable local account can open API/MCP, indexing and billing workspaces; missing configuration is explicitly reported. Live provider charges, merchant checkout/webhooks, Google consent and real GSC properties remain unverified. Stripe and Google configuration are required before those provider operations can succeed.
 
-All new source updates are being synchronized and merged to main in this session. See docs/SERVICES-SETUP.md for Render activation, supported MCP clients, commercial policy review and current billing plan-switch limitations. Never send secrets through chat/GitHub. Existing private-alpha limitations and contact-email delivery configuration remain open.
+PR #4 merged into main at cef3fd8862cce9f6fb79239369808eb1316acf95; all 97 local source files hash-matched its branch before merge. Render deployment recovery is being verified. PR #1, #2 and #3 were already merged; all policy pages were HTTP 200 before this rollout. See docs/SERVICES-SETUP.md for Render activation, supported MCP clients, commercial policy review and current billing plan-switch limitations. Never send secrets through chat/GitHub. Existing private-alpha limitations and contact-email delivery configuration remain open.
 
 # Session 037 — Public website and supporting pages
 2026-10-30 (Asia/Karachi). Version 0.1.6.
