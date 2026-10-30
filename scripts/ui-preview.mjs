@@ -9,8 +9,8 @@ export async function uiHarness(){
   const elements={};
   const element=id=>elements[id]||(elements[id]={innerHTML:'',showModal(){},close(){}});
   const context=vm.createContext({document:{getElementById:element,querySelector:()=>({content:''}),addEventListener(){}},window:{addEventListener(){}},location:{hostname:'localhost',pathname:'/app',search:''},URLSearchParams,console});
-  for(const file of ['policies.js','marketing.js']){const js=(await readFile(path.join(root,'public',file),'utf8')).replace(/^import .*;$/mg,'').replace(/export /g,'');vm.runInContext(js,context);}
-  const source=(await readFile(path.join(root,'public/app.js'),'utf8')).replace(/^init\(\);\s*$/m,'').replace(/^import .*;$/mg,'');
+  for(const file of ['policies.js','marketing.js','tools.js']){const js=(await readFile(path.join(root,'public',file),'utf8')).replace(/^import .*;$/mg,'').replace(/export /g,'');vm.runInContext(js,context);}
+  const source=(await readFile(path.join(root,'public/app.js'),'utf8')).replace(/^init\(\);\s*$/m,'').replace(/^import .*;$/mg,'').replace(/^initToolEvents\(.*$/mg,'');
   vm.runInContext(source,context);
   return {elements,setState(state){vm.runInContext(`session=${JSON.stringify(state.session)};sites=${JSON.stringify(state.sites||[])};connections=${JSON.stringify(state.connections||[])};site=null;`,context);},async render(name){await vm.runInContext(name.startsWith('public:')?'root.innerHTML=publicPage('+JSON.stringify(name.slice(7))+',{href,darkLogo}).html':name==='login'?'auth(false)':name+'()',context);let html=element('root').innerHTML;if(name==='serp')html=html.replace('<div id="serp-content"></div>',`<div id="serp-content">${element('serp-content').innerHTML}</div>`);return html;}};
 }
