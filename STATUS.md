@@ -1,3 +1,14 @@
+# Session 039 — Social authentication and dedicated product landings
+2026-10-30 (Asia/Karachi). Version 0.1.8.
+
+Built Google, GitHub and LinkedIn authorization-code sign-in/signup alongside email/password, a responsive split-panel auth design, provider-configuration status, explicit account linking and password setup/change. Added ten-minute single-use browser-bound flow state, narrow identity scopes, Google/GitHub PKCE, signed OIDC verification for Google/LinkedIn, verified-email creation and no automatic email-based account merging. Provider tokens are discarded. Existing registration/invite gates, accounts, sites and provider connections remain intact.
+
+Designed full Fieldwork SERP and Indexer product landing pages using the supplied references for flow. SERP public home is serp.sitocal.com/; the signed-in workspace is /serp. Indexer is sitocal.com/google-indexer; working GSC tools stay under app.sitocal.com/indexing. Added SSR content, titles, descriptions and canonical metadata, illustrative research/report previews, research-context controls, batch planner, workflow/features/access/FAQ/CTA sections and shared policy navigation. Copied rankings, payouts, testimonials and instant/guaranteed indexing claims were not used.
+
+Validation: syntax and 47 tests pass, including existing workflows, OAuth state/replay/binding, signature/audience/issuer/nonce/expiry checks, signup gates, explicit linking, provider token non-persistence, account password/CSRF controls, SSR routes/assets and landing navigation. Browser checked email login with a disposable account, research context switching, planner interaction, desktop/390px composition and no horizontal page overflow. Real social-provider consent/callbacks are not verified because OAuth credentials are not configured.
+
+Publishing all current source to main is in progress. Read docs/SOCIAL-AUTH-SETUP.md for exact Render variables/callbacks and route changes. Social provider buttons remain disabled with Setup required until configured. Existing Stripe/GSC live-provider activation and commercial readiness limitations remain open.
+
 # Session 038 — Working payments, API/MCP and GSC tools
 2026-10-30 (Asia/Karachi). Version 0.1.7.
 
