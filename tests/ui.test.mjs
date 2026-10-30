@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { uiHarness } from '../scripts/ui-preview.mjs';
 
+test('dedicated product landings use factual capabilities and valid navigation anchors',async()=>{const h=await uiHarness();for(const name of ['serpHome','indexerHome']){const html=await h.render(name);assert.equal((html.match(/<h1>/g)||[]).length,1);const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);for(const a of html.matchAll(/href="#([^"]+)"/g))assert(ids.includes(a[1]));for(const id of ['capabilities','workflow','access','faq'])assert(ids.includes(id));assert(html.includes('AJ Digit, LLC'));assert(!html.includes('RankLocal'));assert(!html.includes('5 free'));}const indexer=await h.render('indexerHome');assert(indexer.includes('inspection-count'));assert(indexer.includes('No verdict recorded'));assert(indexer.includes('Verified GSC properties'));const serp=await h.render('serpHome');assert(serp.includes('data-research-sample'));assert(serp.includes('No live check performed'));});
+test('email and social sign-in methods render without provider secrets',async()=>{const h=await uiHarness(),html=await h.render('login');for(const provider of ['google','github','linkedin'])assert(html.includes('data-social="'+provider+'"'));assert(html.includes('Sign in with email'));assert(html.includes('autocomplete="current-password"'));assert(!html.includes('CLIENT_SECRET'));});
+
 test('every product workspace renders approved branding, navigation and real empty states',async()=>{
   const h=await uiHarness();h.setState({session:{user:{email:'qa@example.invalid'}},sites:[],connections:[]});
   for(const name of ['overview','editor','converter','serp','integrations','domains','publish']){

@@ -1,3 +1,5 @@
+import { serpLanding,indexerLanding } from './public/product-landings.js';
+import { socialMethods,authOrigin,startSocial,finishSocial,flowCookie } from './lib/social-auth.mjs';
 import { queueInspection,inspectionBatch,startInspectionWorker,batchCsv } from './lib/indexing-jobs.mjs';
 import { billingStatus,checkout,billingPortal,stripeWebhook,checkSiteCapacity } from './lib/billing.mjs';
 import { handlePublicAccess,createApiKey,listApiKeys,revokeApiKey } from './lib/access.mjs';
@@ -58,7 +60,7 @@ async function handler(req,res){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
       if(user && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.7',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.8',mode:'development-alpha'});
     if(p==='/api/contact'&&req.method==='POST'){
       rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
       if(b.website)throw new ProviderError('Message could not be accepted',400);
@@ -67,6 +69,19 @@ async function handler(req,res){
       const ref=id();db.prepare('INSERT INTO enquiries VALUES(?,?,?,?,?,?,?)').run(ref,name,email,company,topic,message,new Date().toISOString());return json(res,201,{reference:ref,message:'Your message has been saved for team review. Reference: '+ref+'. You can also email contact@sitocal.com directly.'});
     }
     if(p==='/api/session')return json(res,200,{user:user?{id:user,email:session.email}:null,csrf:session?.csrf||null,googleConfigured:googleReady()});
+    if(p==='/api/auth/methods'&&req.method==='GET')return json(res,200,{providers:socialMethods(),origin:authOrigin(publicOrigin),signupOpen:process.env.ALLOW_SIGNUPS!=='false',inviteRequired:Boolean(process.env.REGISTRATION_CODE)});
+    const social=p.match(/^\/api\/auth\/oauth\/(google|github|linkedin)\/(start|callback)$/);
+    if(social){
+      const provider=social[1],canonical=authOrigin(publicOrigin);rate('social:'+req.socket.remoteAddress,15);
+      if(social[2]==='start'&&req.method==='POST'){const input=await body(req);if(input.mode==='link'&&(!user||req.headers['x-csrf-token']!==session.csrf))throw new ProviderError('Sign in and reload before linking a provider',403);const flow=startSocial(db,provider,input,canonical,user);res.setHeader('Set-Cookie',flowCookie(provider,flow.binding,canonical));return json(res,200,{url:flow.url});}
+      if(social[2]==='callback'&&req.method==='GET'){
+        const binding=String(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('sitocal_oauth_'+provider+'='))?.split('=')[1];
+        res.setHeader('Referrer-Policy','no-referrer');
+        try{const result=await finishSocial(db,provider,url.searchParams,binding,user),next=randomBytes(32).toString('hex'),csrf=randomBytes(24).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(hash(next),result.account.id,csrf,Date.now()+604800000);db.prepare('INSERT INTO session_assurance VALUES(?,?,?)').run(hash(next),provider,Date.now());res.setHeader('Set-Cookie',[cookie(next),flowCookie(provider,'',canonical,true)]);res.writeHead(303,{Location:canonical+result.returnTo});return res.end();}
+        catch(error){res.setHeader('Set-Cookie',flowCookie(provider,'',canonical,true));const message=error instanceof ProviderError?error.message:'Sign-in could not be completed. Please start again.';res.writeHead(303,{Location:canonical+'/login?auth_error='+encodeURIComponent(message)});return res.end();}
+      }
+      throw new ProviderError('Method not allowed',405);
+    }
     if(p==='/api/auth/register'||p==='/api/auth/login'){
       if(req.method!=='POST')throw new ProviderError('Method not allowed',405);rate('auth:'+req.socket.remoteAddress,10);const b=await body(req);const email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>200||password.length<12||password.length>200)throw new ProviderError('Use a valid email and a password of 12–200 characters',400);
       let account=db.prepare('SELECT * FROM users WHERE email=?').get(email);
@@ -79,6 +94,8 @@ async function handler(req,res){
     if(p==='/api/google/callback'&&req.method==='GET'){await googleCallback(store,url.searchParams,user);res.writeHead(303,{Location:'/serp?google=connected'});return res.end();}
     if(p==='/api/google/properties'&&req.method==='GET')return json(res,200,await googleProperties(store,user));
     if(p==='/api/google/report'&&req.method==='POST')return json(res,200,await googleReport(store,user,await body(req)));
+    if(p==='/api/account/methods'&&req.method==='GET'){const password=db.prepare('SELECT password FROM users WHERE id=?').get(user).password;return json(res,200,{identities:db.prepare('SELECT provider,email,name,created FROM login_identities WHERE user_id=?').all(user),hasPassword:password!=='oauth-only',providers:socialMethods()});}
+    if(p==='/api/account/password'&&req.method==='POST'){const input=await body(req),stored=db.prepare('SELECT password FROM users WHERE id=?').get(user).password,next=String(input.password||'');if(next.length<12||next.length>200)throw new ProviderError('Use a password of 12–200 characters',400);if(stored==='oauth-only'){const assurance=db.prepare('SELECT * FROM session_assurance WHERE token=?').get(hash(token));if(!assurance||assurance.authenticated_at<Date.now()-600000)throw new ProviderError('Sign out and sign in with your provider again before adding a password',403);}else if(!checkPassword(String(input.currentPassword||''),stored))throw new ProviderError('Current password is incorrect',403);db.prepare('UPDATE users SET password=? WHERE id=?').run(passwordHash(next),user);db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(user,hash(token));return json(res,200,{saved:true});}
     if(p==='/api/billing'&&req.method==='GET')return json(res,200,billingStatus(db,user));
     if(p==='/api/billing/checkout'&&req.method==='POST')return json(res,200,await checkout(db,user,session.email,await body(req),publicOrigin));
     if(p==='/api/billing/portal'&&req.method==='POST')return json(res,200,await billingPortal(db,user,publicOrigin));
@@ -138,12 +155,22 @@ async function handler(req,res){
     }
     if(p.startsWith('/api/'))throw new ProviderError('Endpoint not found',404);
     if(req.method!=='GET')throw new ProviderError('Method not allowed',405);
-    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/marketing.css':['marketing.css','text/css'],'/assets/marketing.js':['marketing.js','text/javascript'],'/assets/tools.js':['tools.js','text/javascript'],'/assets/policies.js':['policies.js','text/javascript'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
+    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/marketing.css':['marketing.css','text/css'],'/assets/marketing.js':['marketing.js','text/javascript'],'/assets/tools.js':['tools.js','text/javascript'],'/assets/auth.js':['auth.js','text/javascript'],'/assets/product-landings.js':['product-landings.js','text/javascript'],'/assets/auth.css':['auth.css','text/css'],'/assets/products.css':['products.css','text/css'],'/assets/policies.js':['policies.js','text/javascript'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing'].includes(p))throw new ProviderError('Page not found',404);
-    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');res.end(html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`));
+    if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
+    const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp-home',indexerHome=p==='/google-indexer';
+    if(serpHome||indexerHome){
+      const production=Boolean(baseDomain&&(hostname===baseDomain||hostname.endsWith('.'+baseDomain)));
+      const href=(name,query='')=>{const sub=['editor','wp','serp'].includes(name)?name:['app','publish','integrations','domains','jobs','login','developer','indexing','billing','account'].includes(name)?'app':'';return production?`https://${sub?sub+'.':''}${baseDomain}${['app','editor','wp','landing'].includes(name)?'/':'/'+name}${query}`:(name==='landing'?'/':'/'+name)+query;};
+      const darkLogo='<span class="logo"><img class="brand-lockup" src="/assets/brand/logo-dark.svg" alt="Sitocal" width="155" height="47"></span>';
+      const content=(serpHome?serpLanding:indexerLanding)({href,darkLogo}),title=serpHome?'Sitocal SERP — Research your next local opportunity':'Google Indexer — Sitocal',description=serpHome?'Research local rankings, competitors and demand with connected provider data in Sitocal.':'Inspect verified URLs, queue bulk GSC checks, submit sitemaps and export per-URL CSV reports with Sitocal.';
+      entry=entry.replace('<title>Sitocal — Your local growth workspace</title>','<title>'+title+'</title>').replace('Sitocal brings local website creation, editing, WordPress exports and search research into one workspace.',description).replace('<div id="root"><div class="loading">Sitocal is opening your workspace…</div></div>','<div id="root">'+content+'</div>');
+      const canonical=serpHome?(production?'https://serp.'+baseDomain+'/':origin+'/serp-home'):(production?'https://'+baseDomain+'/google-indexer':origin+'/google-indexer');entry=entry.replace('</head>','<link rel="canonical" href="'+canonical+'"></head>');
+    }
+    res.end(entry);
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
 }
 const stopInspectionWorker=startInspectionWorker(store);
