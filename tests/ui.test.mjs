@@ -49,3 +49,5 @@ test('public navigation exposes all niche guides, tools and honest preview state
  const comparison=await h.render('public:why-sitocal');assert(comparison.includes('<table>'));assert(comparison.includes('not a benchmark'));
  const leadsmart=await h.render('public:leadsmart-coverage-intelligence');assert(leadsmart.includes('Not an active coverage engine'));
 });
+
+test('language form retains native public-page translation submission',async()=>{const h=await uiHarness();let prevented=false;await h.dispatchSubmit({target:{id:'site-language-form'},preventDefault(){prevented=true;}});assert.equal(prevented,false);const html=await h.render('landing');assert(html.includes('action="https://translate.google.com/translate"'));assert(html.includes('target="_blank"'));assert(html.includes('name="tl"'));assert(html.includes('name="u"'));});
