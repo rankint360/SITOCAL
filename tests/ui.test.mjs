@@ -26,7 +26,7 @@ test('logged-out landing has complete reference flow, valid anchors and native d
   assert.equal((html.match(/<details /g)||[]).length,12);
   assert(html.includes('id="contact-form"'));assert(html.includes('Sample review'));assert(html.includes('not yet verified'));
   for(const t of ['Free','Starter','Growth','Agency','Enterprise','$10','$50','$100'])assert(html.includes(t));
-  for(const dest of ['app','editor','wp','serp','publish','integrations','login','domains'])assert(html.includes('href="/'+dest+'"'));
+  for(const dest of ['app','editor','wp','serp','publish','integrations','login','domains','billing'])assert(html.includes('href="/'+dest+'"'));
 });
 
 test('public pages expose operator, draft policy state, useful content and connected navigation',async()=>{

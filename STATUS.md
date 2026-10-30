@@ -1,3 +1,12 @@
+# Session 038 — Working payments, API/MCP and GSC tools
+2026-10-30 (Asia/Karachi). Version 0.1.7.
+
+Verified PR #1, #2 and #3 already merged; all five policy pages were published (HTTP 200). Built scoped, expiring API keys and REST draft/list/export endpoints, stateless bearer MCP plus stdio bridge, GSC property/inspection/sitemap actions, durable bulk inspection jobs and CSV reports. Added Stripe card checkout, signature-verified/idempotent subscription reconciliation, portal integration and manual payment request foldouts. Manual plan grants require operator verification and expiry. Saved-site limits confirmed by owner: Free 1 / Starter 5 / Growth 15 / Agency 100. Existing sites are retained; new drafts are limited before paid AI calls. Owner selected request-instructions text for PayPal/AliPay/Wise/bank/custom; no personal account details published.
+
+Validation: 38 tests passing in the current build, covering prior workflows plus scoped auth, API idempotency/revocation/ownership, quotas, verified Google property boundaries, queued failures/CSV, Stripe signature/replay/paid-state handling and manual-grant expiry. Browser verified a disposable local account can open API/MCP, indexing and billing workspaces; missing configuration is explicitly reported. Live provider charges, merchant checkout/webhooks, Google consent and real GSC properties remain unverified. Stripe and Google configuration are required before those provider operations can succeed.
+
+All new source updates are being synchronized and merged to main in this session. See docs/SERVICES-SETUP.md for Render activation, supported MCP clients, commercial policy review and current billing plan-switch limitations. Never send secrets through chat/GitHub. Existing private-alpha limitations and contact-email delivery configuration remain open.
+
 # Session 037 — Public website and supporting pages
 2026-10-30 (Asia/Karachi). Version 0.1.6.
 

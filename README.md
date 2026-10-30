@@ -1,6 +1,6 @@
 # Sitocal
 
-Private development alpha, version 0.1.6. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.1.7. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
@@ -113,3 +113,7 @@ Public pages: /about, /contact, /blog, /products-services, /api-mcp, /google-ind
 Contact enquiries are validated and stored in the private enquiries table. No email is sent by this release. The service operator can run npm run enquiries:list on the Render service shell to review up to 100 recent messages; its output contains personal data and must not be published. The web API does not expose enquiry records. Configure email delivery and define retention before commercial launch.
 
 Paid prices are owner-supplied; USD/month is the working assumption. Usage quotas, checkout, refund windows and full commercial/legal terms remain to be finalized. Policies identify AJ Digit, LLC (dba SITOCAL), contact@sitocal.com, and are marked launch drafts.
+
+## Services release 0.1.7
+
+Working API/MCP, GSC inspection/sitemap tools with persistent bulk jobs, Stripe checkout/webhook code, manual-payment request foldouts and saved-website limits are implemented. Read docs/SERVICES-SETUP.md. Stripe is disabled until merchant secrets/prices/webhook are configured; Google requires OAuth configuration and user consent. No live merchant payment or GSC property has been verified. Saved-site limits are Free 1 / Starter 5 / Growth 15 / Agency 100; existing drafts are preserved. Earlier descriptions of these tools as planned are superseded by this checkpoint.

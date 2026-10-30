@@ -1,3 +1,7 @@
+import { queueInspection,inspectionBatch,startInspectionWorker,batchCsv } from './lib/indexing-jobs.mjs';
+import { billingStatus,checkout,billingPortal,stripeWebhook,checkSiteCapacity } from './lib/billing.mjs';
+import { handlePublicAccess,createApiKey,listApiKeys,revokeApiKey } from './lib/access.mjs';
+import { indexingAction } from './lib/indexing.mjs';
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +25,7 @@ const draftPreviews=new Map();
 function rate(key,max=60){const t=Date.now(),r=limits.get(key);if(limits.size>10000)for(const[k,v]of limits)if(v.until<t)limits.delete(k);if(!r||r.until<t){limits.set(key,{count:1,until:t+60000});return;}if(++r.count>max)throw new ProviderError('Too many requests; try again in a minute',429);}
 function connection(user,provider){const row=db.prepare('SELECT secret FROM connections WHERE user_id=? AND provider=?').get(user,provider);if(!row)throw new ProviderError(`Connect ${provider} in Integrations first`,409);return store.unseal(row.secret);}
 function ownedSite(user,siteId){const row=db.prepare('SELECT * FROM sites WHERE id=? AND user_id=?').get(siteId,user);if(!row)throw new ProviderError('Project not found',404);return {...row,data:JSON.parse(row.data)};}
-function saveSite(user,data,siteId){const now=new Date().toISOString();const v=validateSite(data);if(siteId){ownedSite(user,siteId);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);db.prepare('UPDATE sites SET data=?,updated=? WHERE id=? AND user_id=?').run(JSON.stringify(v),now,siteId,user);}else{siteId=id();db.prepare('INSERT INTO sites VALUES(?,?,?,?,?)').run(siteId,user,JSON.stringify(v),now,now);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);}return ownedSite(user,siteId);}
+function saveSite(user,data,siteId){const now=new Date().toISOString();const v=validateSite(data);if(siteId){ownedSite(user,siteId);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);db.prepare('UPDATE sites SET data=?,updated=? WHERE id=? AND user_id=?').run(JSON.stringify(v),now,siteId,user);}else{checkSiteCapacity(db,user);siteId=id();db.prepare('INSERT INTO sites VALUES(?,?,?,?,?)').run(siteId,user,JSON.stringify(v),now,now);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);}return ownedSite(user,siteId);}
 async function body(req){const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>17*1024*1024)throw new ProviderError('Request too large',413);chunks.push(c);}const b=Buffer.concat(chunks);if(req.headers['content-type']?.startsWith('application/zip'))return b;try{return JSON.parse(b.toString()||'{}');}catch{throw new ProviderError('Invalid JSON',400);}}
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));}
 function safeResult(value){return JSON.stringify(value);}
@@ -41,6 +45,8 @@ async function handler(req,res){
   const url=new URL(req.url,origin),p=url.pathname;
   try{
     rate(req.socket.remoteAddress||'unknown',180);
+    if(p==='/api/billing/webhook'&&req.method==='POST'){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>1024*1024)throw new ProviderError('Webhook too large',413);chunks.push(chunk);}return json(res,200,await stripeWebhook(db,Buffer.concat(chunks),req.headers['stripe-signature']));}
+    if(await handlePublicAccess(req,res,{p,origin,db,json,body,rate,saveSite,ownedSite}))return;
     let token='',session,cookieName='sitocal_session';
     for(const [name,value] of sessionCandidates(req.headers.cookie)){
       const candidate=db.prepare('SELECT sessions.*,users.email FROM sessions JOIN users ON users.id=sessions.user_id WHERE token=? AND expires>?').get(hash(value),Date.now());
@@ -52,7 +58,7 @@ async function handler(req,res){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
       if(user && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.6',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.1.7',mode:'development-alpha'});
     if(p==='/api/contact'&&req.method==='POST'){
       rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
       if(b.website)throw new ProviderError('Message could not be accepted',400);
@@ -69,12 +75,24 @@ async function handler(req,res){
     }
     if(p==='/api/auth/logout'&&req.method==='POST'){if(user&&req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed',403);db.prepare('DELETE FROM sessions WHERE token=?').run(hash(token));res.setHeader('Set-Cookie',cookieName==='sitocal_session'?cookie('',true):[cookie('',true),cookie('',true,cookieName)]);return json(res,200,{ok:true});}
     if(p.startsWith('/api/')&&!user)throw new ProviderError('Sign in to continue',401);
-    if(p==='/api/google/start'&&req.method==='POST')return json(res,200,{url:googleStart(db,user)});
+    if(p==='/api/google/start'&&req.method==='POST')return json(res,200,{url:googleStart(db,user,await body(req))});
     if(p==='/api/google/callback'&&req.method==='GET'){await googleCallback(store,url.searchParams,user);res.writeHead(303,{Location:'/serp?google=connected'});return res.end();}
     if(p==='/api/google/properties'&&req.method==='GET')return json(res,200,await googleProperties(store,user));
     if(p==='/api/google/report'&&req.method==='POST')return json(res,200,await googleReport(store,user,await body(req)));
+    if(p==='/api/billing'&&req.method==='GET')return json(res,200,billingStatus(db,user));
+    if(p==='/api/billing/checkout'&&req.method==='POST')return json(res,200,await checkout(db,user,session.email,await body(req),publicOrigin));
+    if(p==='/api/billing/portal'&&req.method==='POST')return json(res,200,await billingPortal(db,user,publicOrigin));
+    if(p==='/api/developer/keys'&&req.method==='GET')return json(res,200,{keys:listApiKeys(db,user)});
+    if(p==='/api/developer/keys'&&req.method==='POST')return json(res,201,createApiKey(db,user,await body(req)));
+    const revoke=p.match(/^\/api\/developer\/keys\/([a-f0-9-]{36})$/);if(revoke&&req.method==='DELETE')return json(res,200,revokeApiKey(db,user,revoke[1]));
+    if(p==='/api/indexing/batches'&&req.method==='POST')return json(res,202,await queueInspection(store,user,await body(req)));
+    if(p==='/api/indexing/batches'&&req.method==='GET')return json(res,200,{batches:db.prepare('SELECT * FROM indexing_batches WHERE user_id=? ORDER BY created DESC LIMIT 50').all(user)});
+    const batch=p.match(/^\/api\/indexing\/batches\/([a-f0-9-]{36})(\/csv)?$/);if(batch&&req.method==='GET'){const result=inspectionBatch(db,user,batch[1]);if(!batch[2])return json(res,200,result);res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="sitocal-index-inspections.csv"'});return res.end(batchCsv(result));}
+    if(p==='/api/indexing/history'&&req.method==='GET')return json(res,200,{events:db.prepare('SELECT * FROM indexing_events WHERE user_id=? ORDER BY created DESC LIMIT 50').all(user).map(e=>({...e,config:JSON.parse(e.config),result:JSON.parse(e.result)}))});
+    const indexAction=p.match(/^\/api\/indexing\/(properties|sitemaps|inspect|submit)$/);
+    if(indexAction&&req.method==='POST'){rate('indexing:'+user,30);const input=await body(req);const result=await indexingAction(store,user,indexAction[1],input);if(['inspect','submit'].includes(indexAction[1]))db.prepare('INSERT INTO indexing_events VALUES(?,?,?,?,?,?)').run(id(),user,indexAction[1],JSON.stringify(input),JSON.stringify(result),new Date().toISOString());return json(res,200,result);}
     if(p==='/api/sites'&&req.method==='GET')return json(res,200,{sites:db.prepare('SELECT * FROM sites WHERE user_id=? ORDER BY updated DESC').all(user).map(s=>({...s,data:JSON.parse(s.data)}))});
-    if(p==='/api/sites'&&req.method==='POST'){const b=await body(req);if(b.generation==='ai'){const c=connection(user,'openai');const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b);return {...saveSite(user,r.site),usage:r.usage,model:r.model,promptVersion:r.promptVersion};});return json(res,201,generated);}return json(res,201,saveSite(user,b.pages?b:draftSite(b)));}
+    if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const c=connection(user,'openai');const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b);return {...saveSite(user,r.site),usage:r.usage,model:r.model,promptVersion:r.promptVersion};});return json(res,201,generated);}return json(res,201,saveSite(user,b.pages?b:draftSite(b)));}
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=findManifest(files,validateSite);
       if(manifest)return json(res,201,saveSite(user,manifest));
@@ -120,13 +138,14 @@ async function handler(req,res){
     }
     if(p.startsWith('/api/'))throw new ProviderError('Endpoint not found',404);
     if(req.method!=='GET')throw new ProviderError('Method not allowed',405);
-    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/marketing.css':['marketing.css','text/css'],'/assets/marketing.js':['marketing.js','text/javascript'],'/assets/policies.js':['policies.js','text/javascript'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
+    const files={'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/marketing.css':['marketing.css','text/css'],'/assets/marketing.js':['marketing.js','text/javascript'],'/assets/tools.js':['tools.js','text/javascript'],'/assets/policies.js':['policies.js','text/javascript'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer'].includes(p))throw new ProviderError('Page not found',404);
+    if(!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');res.end(html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`));
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
 }
+const stopInspectionWorker=startInspectionWorker(store);
 const server=http.createServer(handler);server.requestTimeout=120000;server.headersTimeout=15000;server.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Sitocal local alpha: http://localhost:${port}`));
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>{db.close();process.exit(0);}));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopInspectionWorker();server.close(()=>{db.close();process.exit(0);});});
