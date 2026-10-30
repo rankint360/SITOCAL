@@ -1,6 +1,6 @@
 # Sitocal
 
-Private development alpha, version 0.1.7. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.1.8. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
@@ -117,3 +117,7 @@ Paid prices are owner-supplied; USD/month is the working assumption. Usage quota
 ## Services release 0.1.7
 
 Working API/MCP, GSC inspection/sitemap tools with persistent bulk jobs, Stripe checkout/webhook code, manual-payment request foldouts and saved-website limits are implemented. Read docs/SERVICES-SETUP.md. Stripe is disabled until merchant secrets/prices/webhook are configured; Google requires OAuth configuration and user consent. No live merchant payment or GSC property has been verified. Saved-site limits are Free 1 / Starter 5 / Growth 15 / Agency 100; existing drafts are preserved. Earlier descriptions of these tools as planned are superseded by this checkpoint.
+
+## Social sign-in and product landing pages (0.1.8)
+
+Email/password and Google/GitHub/LinkedIn login flows are implemented. Real social login requires OAuth application configuration in Render; see docs/SOCIAL-AUTH-SETUP.md. Account & sign-in provides explicit linking and password setup/change. Registration gates remain unchanged. Public SERP home is serp.sitocal.com; its signed-in workspace moved to /serp. The full Indexer landing remains sitocal.com/google-indexer. Public product pages include SSR content and canonical metadata.
