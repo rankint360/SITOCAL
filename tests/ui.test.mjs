@@ -43,7 +43,7 @@ test("vendor assets are real SVG images with recorded official sources",async()=
 
 test('public navigation exposes all niche guides, tools and honest preview states',async()=>{
  const {nichePacks,siteLanguages}=await import('../public/navigation.js');assert.equal(siteLanguages.length,25);assert.equal(new Set(siteLanguages.map(l=>l[0])).size,25);const h=await uiHarness();const home=await h.render('landing');
- assert.equal(nichePacks.length,21);
+ assert.equal(nichePacks.length,30);
  for(const [slug,name] of nichePacks){assert(home.includes('href="/niche-packs/'+slug+'"'));const html=await h.render('public:niche-packs/'+slug);assert(html.includes(name));assert(html.includes('Not a preloaded specialist model'));}
  assert(home.includes('data-site-theme'));assert(home.includes('aria-controls="site-menu"'));assert(home.includes('🇬🇧 EN'));assert(home.includes('AJ Digit, LLC. [d/b/a SITOCAL]'));
  const comparison=await h.render('public:why-sitocal');assert(comparison.includes('<table>'));assert(comparison.includes('not a benchmark'));
