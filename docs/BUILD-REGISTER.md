@@ -1,3 +1,10 @@
+# Session 041 — Pricing and footer polish
+2026-10-30 (Asia/Karachi). Version 0.1.8.
+
+Added a 3px upward pricing-card hover/focus offset, payment brand SVGs for PayPal/Wise/AliPay plus card/bank/custom icons, 3px Featured On tile borders and 8% hover growth. Reduced-motion preferences suppress transforms. Marketing and product-page company footers now read AJ Digit, LLC [d/b/a SITOCAL]. Payment artwork is descriptive and does not activate payment providers; launch-watchlist qualification remains.
+
+Validation: syntax checks and all 47 tests pass. Published three source files directly to main. Render temporarily returned 502 during rollout and recovered: live marketing CSS and JS return HTTP 200 with new transforms, payment icons and footer wording. Existing provider setup and private-alpha limitations remain. Next action: continue platform functionality and provider activation.
+
 # Session 040 — Technology scroller update
 2026-10-30 (Asia/Karachi). Version 0.1.8.
 
