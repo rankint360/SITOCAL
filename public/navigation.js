@@ -17,6 +17,7 @@ export function initAppearance(){
  languageTarget();
  document.addEventListener('submit',e=>{if(e.target.id==='site-language-form'){languageTarget();if(e.target.elements.tl.value==='en')e.preventDefault();}});
  apply(preference?preference==='dark':media.matches);
+ document.addEventListener('click',e=>{if(!location.hostname.endsWith('.translate.goog'))return;const a=e.target.closest('a[href]');if(!a)return;const target=originalWorkspaceUrl(a.href,document.querySelector('meta[name="sitocal-domain"]')?.content||'sitocal.com');if(target){e.preventDefault();e.stopImmediatePropagation();location.href=target;}},true);
  document.addEventListener('click',e=>{const b=e.target.closest('[data-site-theme]');if(b){preference=document.documentElement.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('sitocal-theme',preference);}catch{}apply(preference==='dark');}
  const menu=e.target.closest('[data-site-menu]');if(menu){const opened=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(opened));document.getElementById('site-menu')?.classList.toggle('is-open',opened);}
  if(!e.target.closest('.site-dropdown'))document.querySelectorAll('.site-dropdown[open]').forEach(d=>d.open=false);
@@ -27,3 +28,19 @@ export function initAppearance(){
  new MutationObserver(()=>{apply(document.documentElement.dataset.theme==='dark');languageTarget();}).observe(document.getElementById('root'),{childList:true});
 }
 
+
+export function originalWorkspaceUrl(input,baseDomain='sitocal.com'){
+ try{
+ const u=new URL(input);let target;
+ if(u.hostname==='translate.google.com'&&u.pathname==='/website'){target=new URL(u.searchParams.get('u'));}
+ else if(u.hostname.endsWith('.translate.goog')){
+ const path=u.pathname,aliases={'/sign-in':'/login','/create-account':'/login?signup=1','/dashboard':'/','/app':'/'};
+ if(['/login','/sign-in','/create-account','/dashboard','/app','/account'].includes(path))return 'https://app.'+baseDomain+(aliases[path]||path);
+ return '';
+ }else return '';
+ if(target.protocol!=='https:')return '';
+ const privateHost=['app','editor','wp'].some(s=>target.hostname===s+'.'+baseDomain);
+ const serpWorkspace=target.hostname==='serp.'+baseDomain&&target.pathname==='/serp';
+ return privateHost||serpWorkspace?target.href:'';
+ }catch{return '';}
+}
