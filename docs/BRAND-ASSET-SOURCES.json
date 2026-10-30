@@ -164,5 +164,12 @@
     "origin": "https://turbo0.com",
     "asset": "https://turbo0.com/favicon-32x32.png",
     "file": "turbo.svg"
+  },
+  {
+    "id": "namecheap",
+    "name": "Namecheap",
+    "origin": "https://www.namecheap.com",
+    "asset": "https://cdn.simpleicons.org/namecheap",
+    "file": "namecheap.svg"
   }
 ]
