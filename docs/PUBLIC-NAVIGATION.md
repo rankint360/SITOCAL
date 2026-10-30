@@ -1,6 +1,6 @@
 # Public navigation and appearance — 0.1.9
 
-The shared public header includes Home, Features, Why Sitocal, About Us, Blog, Pricing, all 21 owner-requested niche guides and a seven-tool megamenu. Native details menus support keyboard activation and Escape; the phone menu is collapsible. Pages exist for /features, /why-sitocal, /pricing, /niche-packs, /niche-packs/<slug> and /leadsmart-coverage-intelligence. Existing tool destinations retain their authenticated workspace routes.
+The shared public header includes Home, Features, Why Sitocal, About Us, Blog, Pricing, all 30 owner-requested niche guides and a seven-tool megamenu. Native details menus support keyboard activation and Escape; the phone menu is collapsible. Pages exist for /features, /why-sitocal, /pricing, /niche-packs, /niche-packs/<slug> and /leadsmart-coverage-intelligence. Existing tool destinations retain their authenticated workspace routes.
 
 Niche pages are original business brief guides, not specialist trained models or automatic pack installation. LeadSmart is explicitly a planned coverage-intelligence preview; no network coverage/payout feed is connected. The comparison describes workflows without fabricated benchmarks.
 
@@ -13,3 +13,5 @@ All public pages now include initial server-rendered content and canonical URLs 
 Preview tabs use line icons; technology logos are 42px. Copyright is AJ Digit, LLC. [d/b/a SITOCAL]. Existing provider configuration, private-alpha status and legal-review limitations remain.
 
 Live browser verified Urdu translation of /why-sitocal through Google's translated-site proxy. Google may omit scripts or limit interactive controls in that read view. Use the original Sitocal website for account, editing and provider actions. Client-side translated-link restoration is defensive when scripts are permitted, not a guarantee about Google's proxy. A native form-submit regression test prevents the application handler from intercepting the translator form.
+
+Niche expansion: Tree Care, Handyman, Locksmith, Pool Service, Pressure Washing, Garage Doors, Damage Restoration, Junk Removal and Carpet Cleaning. All 30 entries use distinct relevant inline SVG line icons in sage tiles, shared by the header dropdown, niche directory and guide pages. Icons are repository-native and require no remote asset requests.
