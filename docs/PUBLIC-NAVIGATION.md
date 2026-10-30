@@ -1,0 +1,13 @@
+# Public navigation and appearance — 0.1.9
+
+The shared public header includes Home, Features, Why Sitocal, About Us, Blog, Pricing, all 21 owner-requested niche guides and a seven-tool megamenu. Native details menus support keyboard activation and Escape; the phone menu is collapsible. Pages exist for /features, /why-sitocal, /pricing, /niche-packs, /niche-packs/<slug> and /leadsmart-coverage-intelligence. Existing tool destinations retain their authenticated workspace routes.
+
+Niche pages are original business brief guides, not specialist trained models or automatic pack installation. LeadSmart is explicitly a planned coverage-intelligence preview; no network coverage/payout feed is connected. The comparison describes workflows without fabricated benchmarks.
+
+The theme button stores sitocal-theme=light|dark in browser localStorage; first visit follows prefers-color-scheme. It applies to public pages and compatible shared application surfaces. It does not recolor exported customer sites or preview image contents. Blocked storage falls back to the current session; system changes are followed until the user picks a theme. No external script is loaded for themes.
+
+The upper-right public footer includes 25 language choices with flags and language codes: English, Urdu, Arabic, Hindi, Bengali, simplified/traditional Chinese, Spanish, French, German, Portuguese, Italian, Japanese, Korean, Russian, Turkish, Persian, Indonesian, Malay, Vietnamese, Thai, Dutch, Polish, Ukrainian and Swahili. English is the authored content. Selecting another language and pressing Translate opens Google Translate in a separate tab for the canonical public URL. It does not translate private workspaces or send account tokens, form values, query strings or hashes. No Google translation script runs on the platform. Availability and translation quality depend on Google and region; these are not native maintained translations. Use native localization and a translation review process before promising localized legal/service copy. See https://support.google.com/translate/answer/2534559.
+
+All public pages now include initial server-rendered content and canonical URLs so link previews, indexing and external translation can read the page. Client-side controls initialize normally on Sitocal. In a Google translated proxy, client full-page replacement is skipped to preserve translated server-rendered content.
+
+Preview tabs use line icons; technology logos are 42px. Copyright is AJ Digit, LLC. [d/b/a SITOCAL]. Existing provider configuration, private-alpha status and legal-review limitations remain.
