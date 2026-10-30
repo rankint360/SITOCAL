@@ -11,3 +11,5 @@ The upper-right public footer includes 25 language choices with flags and langua
 All public pages now include initial server-rendered content and canonical URLs so link previews, indexing and external translation can read the page. Client-side controls initialize normally on Sitocal. In a Google translated proxy, client full-page replacement is skipped to preserve translated server-rendered content.
 
 Preview tabs use line icons; technology logos are 42px. Copyright is AJ Digit, LLC. [d/b/a SITOCAL]. Existing provider configuration, private-alpha status and legal-review limitations remain.
+
+Live browser verified Urdu translation of /why-sitocal through Google's translated-site proxy. Google may omit scripts or limit interactive controls in that read view. Use the original Sitocal website for account, editing and provider actions. Client-side translated-link restoration is defensive when scripts are permitted, not a guarantee about Google's proxy. A native form-submit regression test prevents the application handler from intercepting the translator form.
