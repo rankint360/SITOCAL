@@ -1,3 +1,10 @@
+# Session 049 — SERPUM process and location verification
+2026-10-31 (Asia/Karachi). Version 0.2.1.
+
+Replaced the process below the checker with an accessible ordered How it works section: choose region/language, enter location and Geocode, then type a query and press Return/Search. Custom SVG icons, numbered sage cards, hover elevation, responsive stacking, dark theme and reduced-motion support preserve Fieldwork styling. Added a verification panel immediately afterwards with a where am I Google link and desktop results-footer guidance; Maps presentation is described conditionally because Google varies its display.
+
+Validation: syntax checks and all 63 tests pass. Runtime updates published directly to main, latest code commit 7aef153935b9db9a1e50f83de04f4df70b7252f8. Live browser verified both sections and their instructions after Render deployment. Screenshot saved as outputs/serpum-how-it-works.png. Existing limitations remain unchanged.
+
 # Session 048 — SERPUM direct Google search and automatic geocoding
 2026-10-31 (Asia/Karachi). Version 0.2.1.
 
