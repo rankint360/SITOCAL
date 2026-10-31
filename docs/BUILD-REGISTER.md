@@ -1,3 +1,10 @@
+# Session 052 — Integration logos and expanded platform catalog
+2026-10-31 (Asia/Karachi). Version 0.2.2.
+
+Added official locally bundled brand icons to all 11 existing integration cards, including Google Search/Analytics. Added ten catalog cards: Semrush, Ahrefs, SE Ranking, Claude AI, Google Antigravity, Google Gemini, Grok AI, Cursor, Replit and Lovable. Catalog entries explicitly state direct integration is not available and link to official sites; they do not collect credentials or extend the backend provider allowlist. Existing provider actions and saved-state controls remain intact. Eight additional official-site icons are recorded in docs/BRAND-ASSET-SOURCES.json, with 32 brand assets total. Existing official OpenAI developer icon reused for OpenAI.
+
+Validation: syntax checks and all 65 tests pass. Browser fixture confirmed all 21 logos loaded and reviewed new platform cards. Test coverage checks ten unavailable platforms cannot expose Configure and existing saved credentials still show Replace. Preview outputs/integrations-catalog-preview.png uses a fixture account, not live customer data. Publishing and live asset verification in progress. Direct provider implementations remain future work.
+
 # Session 051 — SERPUM feature explanations and scoped policies
 2026-10-31 (Asia/Karachi). Version 0.2.2.
 
