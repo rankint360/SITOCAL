@@ -1,6 +1,6 @@
 # Sitocal
 
-Private development alpha, version 0.1.9. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.2.0. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
@@ -121,3 +121,7 @@ Working API/MCP, GSC inspection/sitemap tools with persistent bulk jobs, Stripe 
 ## Social sign-in and product landing pages (0.1.9)
 
 Email/password and Google/GitHub/LinkedIn login flows are implemented. Real social login requires OAuth application configuration in Render; see docs/SOCIAL-AUTH-SETUP.md. Account & sign-in provides explicit linking and password setup/change. Registration gates remain unchanged. Public SERP home is serp.sitocal.com; its signed-in workspace moved to /serp. The full Indexer landing remains sitocal.com/google-indexer. Public product pages include SSR content and canonical metadata.
+
+## SERPUM local search checker
+
+Public tool: https://serp.sitocal.com/serpum. Generates Google search links from country, language and chosen coordinates; does not scrape or certify rankings. Optional address lookup uses a cached, rate-limited Photon-compatible server endpoint. See docs/SERPUM.md for usage limits, privacy, configuration and reference analysis.
