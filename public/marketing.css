@@ -63,3 +63,5 @@ html[data-theme=dark] .site-niche-links>a:hover .site-niche-icon,html[data-theme
 .site-tool-links>a:nth-child(5){--icon-hue:218}
 .site-tool-links>a:nth-child(6){--icon-hue:326}
 .site-tool-links>a:nth-child(7){--icon-hue:44}
+
+.site-tool-links>a:nth-child(8){--icon-hue:184}
