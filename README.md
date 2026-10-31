@@ -1,6 +1,6 @@
 # Sitocal
 
-Private development alpha, version 0.2.1. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.2.2. Approved brand: Sitocal. Design: Fieldwork forest, ivory and sage. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
