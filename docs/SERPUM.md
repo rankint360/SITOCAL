@@ -2,7 +2,7 @@
 
 ## What ships
 
-Public URL: https://serp.sitocal.com/serpum. Eight original guides live at /serpum/blog-1 through /serpum/blog-8. The shared Tools megamenu links to SERPUM separately from the authenticated SERP workspace.
+Public URL: https://serp.sitocal.com/serpum. Eight original guides use descriptive title-based slugs under /serpum/. Numbered legacy URLs /serpum/blog-1 through /serpum/blog-8 permanently redirect (301) to their matching title-based URLs; internal links and canonicals use the current slugs. The shared Tools megamenu links to SERPUM separately from the authenticated SERP workspace.
 
 The Fieldwork landing page includes keyword + Search Google, 249 country/territory options, 67 interface-language options, address + Geocode, explicit address-candidate selection, latitude/longitude editing, approximate location radius, optional SafeSearch request, prepared-link copying, map verification, context summary, workflow steps, an original background explainer, original guides and FAQs. Default country is Pakistan; coordinates are never assumed from a placeholder. No browser GPS permission is requested.
 
