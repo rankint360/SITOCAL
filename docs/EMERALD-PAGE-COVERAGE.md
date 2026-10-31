@@ -88,4 +88,4 @@ Overview/builder, editor, WordPress converter, SERP research, domain search, pub
 Desktop reviewed: About, policy reader, converter, developer and dark Indexer. These are representative visual checks, not a claim that every route was separately screenshot-tested in every browser. Existing 70 tests cover source packaging and prior account/save/export/provider workflows as well.
 
 ## Deployment
-Pending live rollout verification. Production registration, payment/provider setup, customer-generated website themes and request limits are unchanged.
+PR #12 merged into main at f6756e85532b91d6d81d6be97f92b898a688c965. All 135 source files matched the branch before merge. Live verification passed 76/76 public pages (74 registered routes plus root/SERP landing), all six hostnames reported HTTP 200 version 0.3.1, and app/marketing JS plus all eight shared UI stylesheets byte-matched source. Browser verified live About layout and saved outputs/emerald-sitewide-live.png. Portable source archive refreshed without runtime data or secrets. Production registration, payment/provider setup, customer-generated website themes and request limits are unchanged.
