@@ -1,3 +1,10 @@
+# Session 056 — Integration connectors
+2026-10-31 (Asia/Karachi). Version 0.4.0.
+
+Implemented supported connection/workflow coverage for all 21 signed-in catalog entries. Added Claude, Gemini and Grok website generation; Semrush/Ahrefs/SE Ranking bounded domain reports; read-only Cursor cloud agent listing. Existing API connectors now have non-generating account/model checks and persisted sanitized status/timestamps. Cloudflare deploy hook receives a local format check only. Antigravity MCP, Replit GitHub import and Lovable reviewed prompt handoffs replace catalog-only placeholders. Existing account encryption, publish actions, Google OAuth and export features retained. Additive connector_checks table invalidates on replacement/removal and prevents old in-flight checks verifying new keys. Fixed hosts, bounded transport, explicit report review, existing job/rate controls. No live provider account activation.
+
+Validation: syntax checks and 81 automated tests pass; new fixture coverage includes 16 direct access checks, Cloudflare local hook checks, report guards/failures/transport limits, three additional AI adapters, HTTP account isolation/CSRF and credential/status resets. Local disposable browser verified 21 cards, search, Claude setup and Lovable encoded unsent prompt link. See docs/INTEGRATION-CONNECTORS.md for exact capabilities, official references and setup. Publication and live verification pending; update this entry after merge. Next owner step: configure provider API keys in Integrations and run per-account checks; Google OAuth still needs server credentials. No runtime secrets included in package.
+
 # Session 055 — Complete Emerald Studio page-family rollout
 2026-10-31 (Asia/Karachi). Version 0.3.1.
 
