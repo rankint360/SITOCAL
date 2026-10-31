@@ -1,3 +1,4 @@
+import {serpumLegacyRoutes} from './public/serpum-data.js';
 import {createSerpumGeocoder} from './lib/serpum-geocode.mjs';
 import {marketingHome,publicPage,publicRoutes} from './public/marketing.js';
 import {navigationRoutes} from './public/navigation.js';
@@ -51,6 +52,7 @@ async function handler(req,res){
   const url=new URL(req.url,origin),p=url.pathname;
   try{
     rate(req.socket.remoteAddress||'unknown',180);
+    if(Object.hasOwn(serpumLegacyRoutes,p)){res.writeHead(301,{Location:serpumLegacyRoutes[p]+url.search});return res.end();}
     if(p==='/api/billing/webhook'&&req.method==='POST'){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>1024*1024)throw new ProviderError('Webhook too large',413);chunks.push(chunk);}return json(res,200,await stripeWebhook(db,Buffer.concat(chunks),req.headers['stripe-signature']));}
     if(await handlePublicAccess(req,res,{p,origin,db,json,body,rate,saveSite,ownedSite}))return;
     let token='',session,cookieName='sitocal_session';
