@@ -1,3 +1,4 @@
+import {serpumFeatureRoutes} from '../public/serpum-features.js';
 import {serpumArticles} from '../public/serpum-data.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,6 +26,9 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     for(const asset of ['serpum.js','serpum-data.js','serpum.css','navigation.js','auth.js','auth.css','products.css','product-landings.js'])assert.equal((await call('/assets/'+asset)).status,200);
     for(const route of ['/serpum','/serpum/blog-1','/serpum/blog-8','/features','/why-sitocal','/pricing','/niche-packs','/niche-packs/hvac','/niche-packs/optometrists','/leadsmart-coverage-intelligence','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/sign-in','/create-account','/dashboard','/api-mcp','/google-indexer'])assert.equal((await call(route)).status,200,route);
     const featuresPage=await(await call('/features?private=discard')).text();assert(featuresPage.includes('Practical tools for a clearer local presence.'));assert(featuresPage.includes('href="http://localhost:4318/features"'));assert(featuresPage.includes('site-language-form'));
+    const libraryRedirect=await fetch(origin+'/serpum/features',{redirect:'manual'});assert.equal(libraryRedirect.status,301);assert.equal(libraryRedirect.headers.get('location'),'/serpum/features/');
+    for(const route of serpumFeatureRoutes){const response=await call('/'+route);assert.equal(response.status,200,route);const html=await response.text();assert(html.includes('rel="canonical" href="'+origin+'/'+route+'"'),route);assert.equal((html.match(/<title>/g)||[]).length,1);assert.equal((html.match(/name="description"/g)||[]).length,1);assert(!html.includes('<meta name="robots" content="noindex">'));assert(!html.includes('href="undefined"'));}
+    assert.equal((await call('/assets/serpum-features.js')).status,200);assert.equal((await call('/serpum/features/unknown.html')).status,404);
     const serpumEntry=await(await call('/serpum')).text();assert(serpumEntry.includes('SERPUM'));assert(serpumEntry.includes('id="serpum-form"'));assert(serpumEntry.includes('href="http://localhost:4318/serpum"'));assert(serpumEntry.includes('/assets/serpum.css'));assert.equal((await call('/serpum/blog-999')).status,404);
     assert.equal((await call('/api/serpum/geocode',{method:'POST',body:{address:'Public landmark',country:'PK',language:'en'},headers:{Origin:'https://evil.example'}})).status,403);
     assert.equal((await call('/api/serpum/geocode',{method:'POST',body:{address:'Public landmark',country:'PK',language:'en'}})).status,503);

@@ -1,3 +1,10 @@
+# Session 051 — SERPUM feature explanations and scoped policies
+2026-10-31 (Asia/Karachi). Version 0.2.2.
+
+Reviewed all 16 requested Valentin.app explanation/tool references plus privacy and terms. Added /serpum/features/ hub, 16 original title-based .html guides, /serpum/privacy and /serpum/terms, page contents/breadcrumbs, source attribution, escaped examples, footer links and checker-library promotion. Slashless hub redirects 301. Fieldwork cards, mobile layout, dark styles and reduced-motion support included. The scope is explanation pages, not newly functional replicas of every historical tool; guides explicitly disclose that distinction. Third-party authorship is preserved. Policies describe actual SITOCAL processing and supplement platform policies as alpha notices, rather than copying inaccurate browser-only data or third-party legal claims.
+
+Validation: syntax checks and all 64 tests pass; API coverage checks all 19 new URLs, canonicals, one title/description, unknown-route 404, asset serving and hub redirect. Browser verified library-to-UULE navigation, scoped footer links, dark view and mobile library/guide without horizontal overflow. Final source publishing and live verification in progress. Future interactive decoders/simulator/experiments remain separately scoped work. Read docs/SERPUM.md for page inventory and limitations.
+
 # Session 050 — SERPUM local-search background and feedback
 2026-10-31 (Asia/Karachi). Version 0.2.1.
 

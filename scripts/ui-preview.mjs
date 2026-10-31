@@ -9,7 +9,7 @@ export async function uiHarness(){
   const elements={},handlers={};
   const element=id=>elements[id]||(elements[id]={innerHTML:'',showModal(){},close(){}});
   const context=vm.createContext({document:{getElementById:element,querySelector:()=>({content:''}),addEventListener(type,handler){(handlers[type]??=[]).push(handler);}},window:{addEventListener(){}},location:{hostname:'localhost',pathname:'/app',search:''},URLSearchParams,console});
-  for(const file of ['navigation.js','serpum-data.js','serpum.js','policies.js','marketing.js','tools.js','auth.js','product-landings.js']){const js=(await readFile(path.join(root,'public',file),'utf8')).replace(/^import .*;$/mg,'').replace(/export /g,'');vm.runInContext(js,context);}
+  for(const file of ['navigation.js','serpum-features.js','serpum-data.js','serpum.js','policies.js','marketing.js','tools.js','auth.js','product-landings.js']){const js=(await readFile(path.join(root,'public',file),'utf8')).replace(/^import .*;$/mg,'').replace(/export /g,'');vm.runInContext(js,context);}
   const source=(await readFile(path.join(root,'public/app.js'),'utf8')).replace(/^if\(location.hostname.endsWith.*$/m,'').replace(/^import .*;$/mg,'').replace(/^initToolEvents\(.*$/mg,'').replace(/^initAuthEvents\(.*$/mg,'').replace(/^initAppearance\(.*$/mg,'');
   vm.runInContext(source,context);
   return {elements,async dispatchSubmit(event){for(const handler of handlers.submit||[])await handler(event);},setState(state){vm.runInContext(`session=${JSON.stringify(state.session)};sites=${JSON.stringify(state.sites||[])};connections=${JSON.stringify(state.connections||[])};site=null;`,context);},async render(name){await vm.runInContext(name.startsWith('public:')?'root.innerHTML=publicPage('+JSON.stringify(name.slice(7))+',{href,darkLogo}).html':name==='login'?'auth(false)':name+'()',context);let html=element('root').innerHTML;if(name==='serp')html=html.replace('<div id="serp-content"></div>',`<div id="serp-content">${element('serp-content').innerHTML}</div>`);return html;}};
@@ -17,7 +17,7 @@ export async function uiHarness(){
 
 export async function createPreviews(target){
   await mkdir(path.join(target,'assets/brand'),{recursive:true});
-  for(const file of ['style.css','fieldwork.css','landing.css','marketing.css','marketing.js','navigation.js','serpum.js','serpum-data.js','serpum.css','policies.js','auth.css','products.css'])await copyFile(path.join(root,'public',file),path.join(target,'assets',file));
+  for(const file of ['style.css','fieldwork.css','landing.css','marketing.css','marketing.js','navigation.js','serpum.js','serpum-data.js','serpum-features.js','serpum.css','policies.js','auth.css','products.css'])await copyFile(path.join(root,'public',file),path.join(target,'assets',file));
   for(const file of ['logo','logo-dark','icon','icon-dark'])await copyFile(path.join(root,'public/brand',file+'.svg'),path.join(target,'assets/brand',file+'.svg'));
   for(const dir of ['vendors','previews'])await cp(path.join(root,'public',dir),path.join(target,'assets',dir),{recursive:true});
   const data=draftSite({business:'Greenleaf Plumbing',city:'Lahore',services:'Drain cleaning, Water heater repair',businessBrief:'Sample business for design review. This is not a live customer account.'});
