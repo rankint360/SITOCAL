@@ -1,3 +1,10 @@
+# Session 057 — Navigation and overlapping-page reconciliation
+2026-10-31 (Asia/Karachi). Version 0.4.1.
+
+Added Integrations immediately after Pricing in signed-in sidebar/mobile navigation and the session-aware public header. Unified API & MCP/Developer at /api-mcp and Google Indexer/Indexing at /google-indexer: public introduction when anonymous, working existing tool when authenticated. Old /developer and /indexing links redirect permanently with queries preserved. Consolidated /sign-in, /create-account and /dashboard aliases into /login, /register and /app; added /register serving. Canonical tool links and sign-in returns retain destination across email/social flows. Private tool entry HTML is no-store/noindex. Kept distinct public pricing/private billing, SERP introduction/research/SERPUM, and account-security/login functions; see docs/PAGE-CONSOLIDATION.md. Approved Emerald Studio design and existing APIs/data/provider behavior preserved.
+
+Validation: syntax checks and all 84 tests pass, including three new route/navigation regression tests and the existing 81 feature tests. Disposable browser verified API/MCP introduction -> login -> canonical working API/MCP page, Google Indexer full existing controls, sidebar Pricing -> Integrations, and signed-in public header ordering. No live provider actions or customer data changes. Publication and live verification pending. Next: receive the user's reference dashboard screenshots before scoping the next feature build.
+
 # Session 056 — Integration connectors
 2026-10-31 (Asia/Karachi). Version 0.4.0.
 
