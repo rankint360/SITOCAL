@@ -1,6 +1,6 @@
 # Continuing Sitocal
 
-Read STATUS.md, README.md, docs/BUILD-REGISTER.md and deploy/DEPLOYMENT.md first. Preserve Sitocal naming and approved FIELDWORK forest/ivory/sage design. Follow the latest direct user scope over historical MVP deferrals.
+Read STATUS.md, README.md, docs/BUILD-REGISTER.md and deploy/DEPLOYMENT.md first. Preserve Sitocal naming and approved Emerald Studio design (31 October 2026); see docs/SITOCAL-EMERALD-DESIGN.md. Follow the latest direct user scope over historical MVP deferrals.
 
 This is Node.js 24 ESM with built-in SQLite and no runtime npm dependencies. Run npm run check and npm test for changes. Tests use disposable temporary databases and fixture network responses; never point them at live customer data or provider accounts.
 
@@ -15,3 +15,5 @@ Use ONLY https://github.com/rankint360/SITOCAL for Sitocal source going forward.
 
 2026-10-29 latest design override: uploaded FIELDWORK reference supersedes Orchard for upcoming redesign. User approved production logos/icons on 2026-10-29; header/footer/favicon application is authorized. See docs/SITOCAL-FIELDWORK-DESIGN.md. Fieldwork UI is implemented in review branch 0.1.3; never fabricate reference dashboard metrics.
 
+
+2026-10-31 latest direct approval: Emerald Studio supersedes Fieldwork for the platform UI. Preserve approved logos, generator/exported website themes, action contracts and data isolation. Use the local font CSS and final emerald.css layer across shared routes.
