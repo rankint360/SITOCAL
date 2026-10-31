@@ -1,6 +1,6 @@
 {
   "name": "sitocal",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,7 +10,7 @@
     "start": "node --env-file-if-exists=.env server.mjs",
     "dev": "node --env-file-if-exists=.env --watch server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check server.mjs && node --check public/app.js && node --check public/marketing.js && node --check public/policies.js && node --check public/tools.js && node --check public/auth.js && node --check public/product-landings.js && node --check lib/social-auth.mjs && node --check public/navigation.js",
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/marketing.js && node --check public/policies.js && node --check public/tools.js && node --check public/auth.js && node --check public/product-landings.js && node --check lib/social-auth.mjs && node --check public/navigation.js && node --check public/serpum.js && node --check public/serpum-data.js && node --check lib/serpum-geocode.mjs",
     "package:source": "node scripts/package.mjs",
     "enquiries:list": "node --env-file-if-exists=.env scripts/enquiries.mjs",
     "billing:grant": "node --env-file-if-exists=.env scripts/manual-payment.mjs"
