@@ -1,3 +1,14 @@
+# Session 046 — SERPUM local Google search checker
+2026-10-31 (Asia/Karachi). Version 0.2.0.
+
+Built public SERPUM at serp.sitocal.com/serpum with keyword/Search Google, 249 country options, 67 Google-interface languages, address/Geocode, explicit candidate selection, manual coordinates, radius, SafeSearch request, map verification and prepared-link copying. Added a dedicated Fieldwork landing, original coordinate artwork, workflow/background/FAQ sections and eight original research guides at /serpum/blog-1 through /serpum/blog-8. Added shared Tools navigation and SSR metadata/canonical routes. Reviewed Valentin.app root, linked tools/articles, HTML and loc.js for workflow; no source articles/artwork/code are reproduced or loaded at runtime.
+
+Google opens in the user's browser using country/language/coordinate-UULE hints; no VPN/proxy setup, GPS prompt, server Google scraping, device spoofing or certified rankings. Browser sample for a public Liberty Market point opened Google and Google displayed Liberty Market, Gulberg III, Lahore. This is a verified sample, not a promise for every location or future parameter behavior. SERPUM is separate from provider-backed /serp research history.
+
+Default address provider is Photon (OpenStreetMap data), with a 1.1-second shared interval/single in-flight call, 500-request daily default, bounded 24-hour memory cache, same-origin POST, 2KB request/256KB response limits, timeout and no bulk/autocomplete/retries. Nominatim public service is not enabled by default; its app-builder policy needs an informed responsible operator choice and explicit acknowledgement if selected. Private/paid endpoints are recommended before scale. Manual coordinates remain available when address lookup is unavailable. Privacy notice updated; no keyword/coordinate persistence or account-linked geocode history.
+
+Validation: syntax checks and all 59 tests pass, including URL/UULE bounds and encoding, valid zero, query injection rejection, country/language controls, geocoder caching/concurrency/cap/failures/limits, Photon coordinate ordering, Nominatim gate, SSR pages/assets and prior workflows. Browser verified real Photon candidates, selected-point Google launch, clipboard, stale country-point invalidation, manual 0,0, light/dark and 390px layout without horizontal overflow. Local source and assets verified present. Publishing to main and live verification are in progress. Read docs/SERPUM.md for setup, references, limitations and continuation. Existing private-alpha/provider limitations remain.
+
 # Session 045 — Corrected missing CSS and deployment diagnosis
 2026-10-31 (Asia/Karachi). Version 0.1.9.
 
