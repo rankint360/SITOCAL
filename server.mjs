@@ -1,3 +1,4 @@
+import {extraProviders,aiProviders,validateExtraConfig,verifyConnector,executeConnector} from './lib/connectors.mjs';
 import {serpumLegacyRoutes} from './public/serpum-data.js';
 import {createSerpumGeocoder} from './lib/serpum-geocode.mjs';
 import {marketingHome,publicPage,publicRoutes} from './public/marketing.js';
@@ -25,7 +26,7 @@ import { sessionCandidates,findManifest } from './lib/migration.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));const store=openStore(process.env.DATA_DIR||path.join(root,'data'));const {db}=store;
 const port=Number(process.env.PORT||4317),publicOrigin=process.env.PUBLIC_ORIGIN||(process.env.RENDER_EXTERNAL_HOSTNAME?`https://${process.env.RENDER_EXTERNAL_HOSTNAME}`:`http://localhost:${port}`);
 const {baseDomain,allowedHosts}=hostConfig(process.env);
-const providers=['github','gitlab','bitbucket','netlify','vercel','cloudflare','render','dataforseo','registrar','openai'];
+const providers=[...Object.keys(extraProviders),'github','gitlab','bitbucket','netlify','vercel','cloudflare','render','dataforseo','registrar','openai'];
 const geocodeSerpum=createSerpumGeocoder();
 const limits=new Map();
 const draftPreviews=new Map();
@@ -68,7 +69,7 @@ async function handler(req,res){
       if(user && p!=='/api/serpum/geocode' && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
     if(p==='/api/serpum/geocode'&&req.method==='POST'){rate('serpum-geocode:'+req.socket.remoteAddress,8);const input=await body(req,2048);return json(res,200,await geocodeSerpum(input));}
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.3.1',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.4.0',mode:'development-alpha'});
     if(p==='/api/contact'&&req.method==='POST'){
       rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
       if(b.website)throw new ProviderError('Message could not be accepted',400);
@@ -117,7 +118,7 @@ async function handler(req,res){
     const indexAction=p.match(/^\/api\/indexing\/(properties|sitemaps|inspect|submit)$/);
     if(indexAction&&req.method==='POST'){rate('indexing:'+user,30);const input=await body(req);const result=await indexingAction(store,user,indexAction[1],input);if(['inspect','submit'].includes(indexAction[1]))db.prepare('INSERT INTO indexing_events VALUES(?,?,?,?,?,?)').run(id(),user,indexAction[1],JSON.stringify(input),JSON.stringify(result),new Date().toISOString());return json(res,200,result);}
     if(p==='/api/sites'&&req.method==='GET')return json(res,200,{sites:db.prepare('SELECT * FROM sites WHERE user_id=? ORDER BY updated DESC').all(user).map(s=>({...s,data:JSON.parse(s.data)}))});
-    if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const c=connection(user,'openai');const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b);return {...saveSite(user,r.site),usage:r.usage,model:r.model,promptVersion:r.promptVersion};});return json(res,201,generated);}return json(res,201,saveSite(user,b.pages?b:draftSite(b)));}
+    if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const provider=b.aiProvider||'openai';if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);const c=connection(user,provider);const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b,provider);return {...saveSite(user,r.site),usage:r.usage,model:r.model,provider,promptVersion:r.promptVersion};});return json(res,201,generated);}return json(res,201,saveSite(user,b.pages?b:draftSite(b)));}
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=findManifest(files,validateSite);
       if(manifest)return json(res,201,saveSite(user,manifest));
@@ -141,9 +142,22 @@ async function handler(req,res){
         return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data),out={};if(b.source)out.source=await pushRepository(b.source,connection(user,b.source),files);if(b.host){try{out.deployment=await deploy(b.host,connection(user,b.host),files,site.data.business);}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
       }
     }
-    if(p==='/api/connections'&&req.method==='GET'){const rows=db.prepare('SELECT provider FROM connections WHERE user_id=?').all(user);return json(res,200,{connections:rows.map(x=>x.provider),googleConfigured:googleReady()});}
+    if(p==='/api/connections'&&req.method==='GET'){const rows=db.prepare('SELECT provider FROM connections WHERE user_id=?').all(user);return json(res,200,{connections:rows.map(x=>x.provider),checks:db.prepare('SELECT provider,result FROM connector_checks WHERE user_id=?').all(user).map(x=>({provider:x.provider,...JSON.parse(x.result)})),googleConfigured:googleReady()});}
     const conn=p.match(/^\/api\/connections\/([a-z0-9]+)$/);
-    if(conn){const provider=conn[1];if(![...providers,'google'].includes(provider))throw new ProviderError('Unknown provider',400);if(req.method==='DELETE'){db.prepare('DELETE FROM connections WHERE user_id=? AND provider=?').run(user,provider);return json(res,200,{ok:true});}if(req.method==='PUT'&&provider!=='google'){const b=await body(req);if(JSON.stringify(b).length>10000)throw new ProviderError('Connection too large',400);db.prepare('INSERT OR REPLACE INTO connections VALUES(?,?,?)').run(user,provider,store.seal(b));return json(res,200,{saved:true,verified:false});}}
+    if(conn){const provider=conn[1];if(![...providers,'google'].includes(provider))throw new ProviderError('Unknown provider',400);if(req.method==='DELETE'){db.prepare('DELETE FROM connector_checks WHERE user_id=? AND provider=?').run(user,provider);db.prepare('DELETE FROM connections WHERE user_id=? AND provider=?').run(user,provider);return json(res,200,{ok:true});}if(req.method==='PUT'&&provider!=='google'){let b=await body(req);if(extraProviders[provider])b=validateExtraConfig(provider,b);db.prepare('DELETE FROM connector_checks WHERE user_id=? AND provider=?').run(user,provider);if(JSON.stringify(b).length>10000)throw new ProviderError('Connection too large',400);db.prepare('INSERT OR REPLACE INTO connections VALUES(?,?,?)').run(user,provider,store.seal(b));return json(res,200,{saved:true,verified:false});}}
+    const connectorRoute=p.match(/^\/api\/connectors\/([a-z0-9]+)\/(verify|execute)$/);
+    if(connectorRoute&&req.method==='POST'){
+      const [,provider,action]=connectorRoute;if(!providers.includes(provider))throw new ProviderError('Unknown connector',400);
+      const b=await body(req);rate('connector:'+user,12);const c=connection(user,provider);
+      if(action==='verify'){
+        const original=db.prepare('SELECT secret FROM connections WHERE user_id=? AND provider=?').get(user,provider).secret;
+        let result;try{result=await verifyConnector(provider,c);}catch(e){result={status:'failed',verified:false,checkedAt:new Date().toISOString(),note:e instanceof ProviderError?e.message:'Connection check failed.'};}
+        // Replaced/deleted credentials must never inherit an in-flight check.
+        if(db.prepare('SELECT secret FROM connections WHERE user_id=? AND provider=?').get(user,provider)?.secret===original)db.prepare('INSERT OR REPLACE INTO connector_checks VALUES(?,?,?)').run(user,provider,JSON.stringify(result));
+        return json(res,200,result);
+      }
+      return json(res,200,await job(user,null,'connector-'+provider,()=>executeConnector(provider,c,b)));
+    }
     if(p==='/api/jobs'&&req.method==='GET')return json(res,200,{jobs:db.prepare('SELECT * FROM jobs WHERE user_id=? ORDER BY rowid DESC LIMIT 50').all(user).map(j=>({...j,result:JSON.parse(j.result)}))});
     if(p==='/api/serp/history'&&req.method==='GET')return json(res,200,{observations:db.prepare('SELECT * FROM observations WHERE user_id=? ORDER BY rowid DESC LIMIT 100').all(user).map(o=>({...o,config:JSON.parse(o.config),data:JSON.parse(o.data)}))});
     if(['/api/serp/check','/api/serp/demand','/api/serp/traffic','/api/serp/backlinks'].includes(p)&&req.method==='POST'){
