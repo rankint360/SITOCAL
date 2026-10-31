@@ -1,6 +1,6 @@
 # Sitocal
 
-Private development alpha, version 0.3.0. Approved brand: Sitocal. Design: Emerald Studio — white surfaces, emerald actions, Manrope headings and Inter interface. See docs/SITOCAL-EMERALD-DESIGN.md. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.3.1. Approved brand: Sitocal. Design: Emerald Studio — white surfaces, emerald actions, Manrope headings and Inter interface. See docs/SITOCAL-EMERALD-DESIGN.md. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
