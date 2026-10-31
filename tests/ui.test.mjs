@@ -35,7 +35,7 @@ test('logged-out landing has complete reference flow, valid anchors and native d
 test('public pages expose operator, draft policy state, useful content and connected navigation',async()=>{
  const h=await uiHarness();
  for(const route of ['about','contact','blog','products-services','privacy-policy','terms-and-conditions','refund-policy','service-policy','shipping-policy','api-mcp','google-indexer']){
-  const html=await h.render('public:'+route);assert(html.includes('AJ Digit, LLC'));assert(html.includes('contact@sitocal.com'));assert.equal((html.match(/<h1>/g)||[]).length,1);assert(!html.includes('undefined'));assert(html.includes('/dashboard'));
+  const html=await h.render('public:'+route);assert(html.includes('AJ Digit, LLC'));assert(html.includes('contact@sitocal.com'));assert.equal((html.match(/<h1>/g)||[]).length,1);assert(!html.includes('undefined'));assert(html.includes('/app'));
  }
 });
 
