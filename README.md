@@ -1,9 +1,12 @@
+## Navigation release 0.4.1
+API & MCP and Google Indexer use unified public/signed-in entry paths. Legacy aliases redirect, and Integrations follows Pricing. See [page audit](docs/PAGE-CONSOLIDATION.md).
+
 ## Connector release 0.4.0
 All 21 integration catalog entries now have API actions or guided workflows. See [connector setup and capability matrix](docs/INTEGRATION-CONNECTORS.md). Provider API credentials and live account verification are still required.
 
 # Sitocal
 
-Private development alpha, version 0.3.1. Approved brand: Sitocal. Design: Emerald Studio — white surfaces, emerald actions, Manrope headings and Inter interface. See docs/SITOCAL-EMERALD-DESIGN.md. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.4.1. Approved brand: Sitocal. Design: Emerald Studio — white surfaces, emerald actions, Manrope headings and Inter interface. See docs/SITOCAL-EMERALD-DESIGN.md. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
