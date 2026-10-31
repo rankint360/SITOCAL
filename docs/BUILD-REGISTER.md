@@ -1,3 +1,10 @@
+# Session 050 — SERPUM local-search background and feedback
+2026-10-31 (Asia/Karachi). Version 0.2.1.
+
+Added Why local search needs context before the field notes. Original adapted copy covers Google's 27 October 2017 country-service announcement, VPN/Sensors/extension distinctions, UULE/hl/gl controls, attribution to Valentin.app and the referenced community discussion, plus Anjam Javed LinkedIn feedback CTA. Avoids falsely claiming SITOCAL authored an extension or the original first-person discovery story; links to the existing title-based UULE guide. Google and Chrome official references checked. Fieldwork responsive layout and dark styles included.
+
+Validation: syntax checks and all 63 tests pass. Code published directly to main at e03896ffe01de34ae2da728102835c98c7bea2ea. Live browser verified the complete background text, credits, correct internal UULE link and LinkedIn feedback CTA; preview saved to outputs/serpum-background-preview.png. Existing limitations remain.
+
 # Session 049 — SERPUM process and location verification
 2026-10-31 (Asia/Karachi). Version 0.2.1.
 
