@@ -1,3 +1,4 @@
+import {serpumArticles} from '../public/serpum-data.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -28,6 +29,7 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     assert.equal((await call('/api/serpum/geocode',{method:'POST',body:{address:'Public landmark',country:'PK',language:'en'},headers:{Origin:'https://evil.example'}})).status,403);
     assert.equal((await call('/api/serpum/geocode',{method:'POST',body:{address:'Public landmark',country:'PK',language:'en'}})).status,503);
     assert.equal((await call('/api/serpum/geocode',{method:'POST',body:{address:'x'.repeat(3000),country:'PK',language:'en'}})).status,413);
+    for(const article of serpumArticles){const legacy=await fetch(origin+'/serpum/'+article.legacySlug+'?ref=guide',{redirect:'manual'});assert.equal(legacy.status,301);assert.equal(legacy.headers.get('location'),'/serpum/'+article.slug+'?ref=guide');const current=await(await call('/serpum/'+article.slug)).text();assert(current.includes(article.title));assert(current.includes('href="'+origin+'/serpum/'+article.slug+'"'));}
     const message={name:'Test enquiry',email:'fixture@example.invalid',message:'A factual test message for the contact workflow.',consent:'on',topic:'General enquiry'};
     assert.equal((await call('/api/contact',{method:'POST',body:{...message,consent:''}})).status,400);
     assert.equal((await call('/api/contact',{method:'POST',body:message,headers:{Origin:'https://evil.example'}})).status,403);
