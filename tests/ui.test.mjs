@@ -27,7 +27,7 @@ test('logged-out landing has complete reference flow, valid anchors and native d
   for(const id of ['product-preview','features','themes','niches','how-it-works','export','access','faq','get-started'])assert(ids.includes(id));
   assert.equal((html.match(/role="tab"/g)||[]).length,7);assert.equal((html.match(/role="tabpanel"/g)||[]).length,7);
   assert.equal((html.match(/<details data-faq-category=/g)||[]).length,12);
-  assert(html.includes('id="contact-form"'));assert(html.includes('Sample review'));assert(html.includes('not yet verified'));
+  assert(html.includes('id="contact-form"'));assert(!html.includes('Sample review'));assert(html.includes('Local business owners'));assert(html.includes('not yet verified'));
   for(const t of ['Free','Starter','Growth','Agency','Enterprise','$10','$50','$100'])assert(html.includes(t));
   for(const dest of ['app','editor','wp','serp','publish','integrations','login','domains','billing'])assert(html.includes('href="/'+dest+'"'));
 });

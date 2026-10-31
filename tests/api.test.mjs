@@ -39,8 +39,8 @@ test('account isolation, CSRF, builder-editor-revision-ZIP-converter flow and mi
     assert.equal((await call('/api/contact',{method:'POST',body:message,headers:{Origin:'https://evil.example'}})).status,403);
     const enquiry=await call('/api/contact',{method:'POST',body:message});assert.equal(enquiry.status,201);assert((await enquiry.json()).reference);
     assert.equal((await call('/api/contact')).status,401);
-    for(const file of ['marketing.js','policies.js','marketing.css','previews/workspace.svg','previews/editor.svg','vendors/github.svg'])assert.equal((await call('/assets/'+file)).status,200,file);
-    const entry=await (await call('/')).text();assert(entry.includes('/assets/fieldwork.css'));assert(entry.includes('/assets/landing.css'));assert(entry.includes('/assets/brand/icon.svg'));
+    for(const file of ['marketing.js','policies.js','marketing.css','emerald.css','font-inter.css','font-manrope.css','previews/workspace.svg','previews/editor.svg','vendors/github.svg'])assert.equal((await call('/assets/'+file)).status,200,file);
+    const entry=await (await call('/')).text();assert(entry.includes('/assets/fieldwork.css'));assert(entry.includes('/assets/emerald.css'));assert(entry.includes('/assets/font-inter.css'));assert(entry.includes('/assets/font-manrope.css'));assert(entry.indexOf('/assets/emerald.css')>entry.indexOf('/assets/serpum.css'));assert((await call('/')).headers.get('content-security-policy').includes("font-src 'self' data:"));assert(entry.includes('/assets/landing.css'));assert(entry.includes('/assets/brand/icon.svg'));
     const landingCss=await call('/assets/landing.css');assert.equal(landingCss.status,200);assert(landingCss.headers.get('content-type').startsWith('text/css'));
     for(const name of ['logo','logo-dark','icon','icon-dark']){const r=await call('/assets/brand/'+name+'.svg');assert.equal(r.status,200);assert(r.headers.get('content-type').startsWith('image/svg+xml'));assert((await r.text()).includes('<svg'));}
     assert.equal((await call('/assets/brand/unknown.svg')).status,404);
