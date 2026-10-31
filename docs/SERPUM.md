@@ -1,10 +1,10 @@
-# SERPUM — local Google search checker (0.2.0)
+# SERPUM — local Google search checker (0.2.1)
 
 ## What ships
 
 Public URL: https://serp.sitocal.com/serpum. Eight original guides use descriptive title-based slugs under /serpum/. Numbered legacy URLs /serpum/blog-1 through /serpum/blog-8 permanently redirect (301) to their matching title-based URLs; internal links and canonicals use the current slugs. The shared Tools megamenu links to SERPUM separately from the authenticated SERP workspace.
 
-The Fieldwork landing page includes keyword + Search Google, 249 country/territory options, 67 interface-language options, address + Geocode, explicit address-candidate selection, latitude/longitude editing, approximate location radius, optional SafeSearch request, prepared-link copying, map verification, context summary, workflow steps, an original background explainer, original guides and FAQs. Default country is Pakistan; coordinates are never assumed from a placeholder. No browser GPS permission is requested.
+The Fieldwork landing page includes keyword + Search Google, 249 country/territory options, 67 interface-language options, address + Geocode, automatic top-match selection with visible alternatives, latitude/longitude editing, approximate location radius, optional SafeSearch request, prepared-link copying, map verification, context summary, workflow steps, an original background explainer, original guides and FAQs. Default country is Pakistan; coordinates are never assumed from a placeholder. No browser GPS permission is requested.
 
 Search links are built locally using Google's q, gl, hl, UULE and pws parameters. The coordinate UULE payload uses scaled latitude/longitude, a fresh microsecond timestamp and an approximate radius. The browser opens Google's own result page; there is no server Google scraping, embedded result imitation, rank certification, device spoofing, stored SERP result, or network-location/VPN change. Google may ignore or interpret undocumented parameters differently and may use other signals. Always check Google's reported location. The connected /serp workspace remains the separate provider-backed product.
 
@@ -55,3 +55,9 @@ Key research sources:
 Run npm run check and npm test. Fixture coverage includes UULE scaling/encoding, valid zero, coordinate/keyword/locale rejection, geocoder country filtering, cache/concurrency/daily limits, disabled state, invalid/oversized response handling, public routes/metadata/assets, provider configuration and original-guide structure. Tests do not contact providers. The live low-volume landmark lookup and browser sample used public Liberty Market, Lahore coordinates; Google displayed that Lahore area in the result page. This verifies a sample, not every country/language combination or future Google behavior.
 
 Preserve the existing Render disk, encryption key and registration settings. This public checker does not open account registration or change billing. Before release, verify every new asset is in the source package, branch matches local Git blob hashes, merge to main, verify /api/health version 0.2.0, all nine SERPUM pages, runtime CSS/JS and one low-volume public address lookup.
+
+## 0.2.1 search-flow repair
+
+Search now uses a native GET form with action https://www.google.com/search and target _blank. Valid submission is not cancelled and does not call window.open. Only validated q/gl/hl/uule/pws/optional-safe hidden fields are sent; visible address and local coordinate-option inputs have no submitted names. Google supplies the result page directly. Geocode automatically applies the top valid candidate and marks it selected while retaining alternatives. Every address/country edit clears previous coordinates and prepared fields, including manually entered values. Pending/failed/no-match lookups cannot reuse an old point; Search is disabled during lookup. Manual 0,0 is valid.
+
+Behavioral DOM fixture tests cover default native submission, auto-selection, alternate selection, stale context, lookup failures/races and manual zero. Browser native-form checks opened actual Google pages for Liberty Market, Lahore (Google showed Liberty Market, Gulberg III, Lahore) and Times Square, New York (Google showed 10036, New York, NY). These verified observations do not guarantee all future Google behavior. Existing open pages need a reload to load the repaired script.

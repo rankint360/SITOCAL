@@ -67,7 +67,7 @@ async function handler(req,res){
       if(user && p!=='/api/serpum/geocode' && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
     if(p==='/api/serpum/geocode'&&req.method==='POST'){rate('serpum-geocode:'+req.socket.remoteAddress,8);const input=await body(req,2048);return json(res,200,await geocodeSerpum(input));}
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.2.0',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.2.1',mode:'development-alpha'});
     if(p==='/api/contact'&&req.method==='POST'){
       rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
       if(b.website)throw new ProviderError('Message could not be accepted',400);

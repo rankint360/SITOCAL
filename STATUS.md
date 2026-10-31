@@ -1,3 +1,10 @@
+# Session 048 — SERPUM direct Google search and automatic geocoding
+2026-10-31 (Asia/Karachi). Version 0.2.1.
+
+Search now uses a validated native GET form opening Google Search in a new tab. Visible address fields are never submitted to Google; only keyword, country, language, coordinate UULE and search controls are included. Geocode automatically applies the top matching point and keeps alternatives available. Address/country edits and failed lookups clear old coordinates; pending and late responses cannot launch or restore a stale location. Manual coordinates remain supported.
+
+Validation: syntax checks and all 63 tests passed, including four new UI regression tests covering native navigation, automatic selection, stale-point invalidation, asynchronous changes and valid zero coordinates. Browser checks opened actual Google results and Google displayed Liberty Market, Gulberg III, Lahore for the Pakistan test and 10036, New York, NY for Times Square. Publishing to main and live deployment verification in progress. Existing Google/provider limitations remain; see docs/SERPUM.md.
+
 # Session 047 — Descriptive SERPUM article URLs
 2026-10-31 (Asia/Karachi). Version 0.2.0.
 
