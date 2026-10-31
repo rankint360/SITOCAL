@@ -1,3 +1,10 @@
+# Session 047 — Descriptive SERPUM article URLs
+2026-10-31 (Asia/Karachi). Version 0.2.0.
+
+Replaced all eight numbered article slugs with stable descriptive slugs based on their titles. Internal links and canonical URLs derive from the new slugs. Legacy /serpum/blog-1 through /serpum/blog-8 return permanent 301 redirects to their matching article, preserving query parameters. Unknown numbered pages remain 404. No article content changed.
+
+Validation: syntax checks and all 59 tests pass, including all eight legacy redirects, destinations and new article canonical metadata. Runtime changes and documentation published directly to main. Live verified: all eight numbered URLs return 301 with the matching title-based destination; all eight new pages return 200 with correct canonical URLs. Existing limitations remain.
+
 # Session 046 — SERPUM local Google search checker
 2026-10-31 (Asia/Karachi). Version 0.2.0.
 
