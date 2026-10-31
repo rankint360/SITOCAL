@@ -171,5 +171,77 @@
     "origin": "https://www.namecheap.com",
     "asset": "https://cdn.simpleicons.org/namecheap",
     "file": "namecheap.svg"
+  },
+  {
+    "id": "gitlab",
+    "name": "GitLab",
+    "origin": "https://about.gitlab.com",
+    "asset": "https://about.gitlab.com/images/ico/favicon-192x192.png",
+    "file": "gitlab.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "bitbucket",
+    "name": "Bitbucket",
+    "origin": "https://bitbucket.org",
+    "asset": "https://bitbucket.org/favicon.ico",
+    "file": "bitbucket.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "google",
+    "name": "Google",
+    "origin": "https://www.google.com",
+    "asset": "https://www.google.com/favicon.ico",
+    "file": "google.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "seranking",
+    "name": "SE Ranking",
+    "origin": "https://seranking.com",
+    "asset": "https://seranking.com/wp-content/themes/se_theme/images/favicons/favicon_48x48.svg?v=2",
+    "file": "seranking.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "grok",
+    "name": "Grok AI",
+    "origin": "https://grok.com",
+    "asset": "https://grok.com/images/favicon.svg",
+    "file": "grok.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor",
+    "origin": "https://cursor.com",
+    "asset": "https://cursor.com/marketing-static/favicon-light.svg",
+    "file": "cursor.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "replit",
+    "name": "Replit",
+    "origin": "https://replit.com",
+    "asset": "https://replit.com/public/icons/favicon-prompt-192-rebrand.png",
+    "file": "replit.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
+  },
+  {
+    "id": "lovable",
+    "name": "Lovable",
+    "origin": "https://lovable.dev",
+    "asset": "https://lovable.dev/favicon.ico",
+    "file": "lovable.svg",
+    "note": "Official site icon; bundled locally for integration catalog, not an endorsement.",
+    "retrieved": "2026-10-31"
   }
 ]
