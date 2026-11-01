@@ -1,3 +1,14 @@
+# Session 059 — Canonical account/SERP entry points and admin navigation
+2026-11-01 (Asia/Karachi). Version 0.5.1.
+
+Separated signup from workspace access rather than removing either function. Root /app and /register now route to the canonical app subdomain: anonymous app visits go to a dedicated sign-in URL with a safe workspace return, registration is only shown to signed-out users, and signed-in login/register visits redirect to the requested allowed workspace. Signup/sign-in switching uses real canonical URLs and distinct headings/titles. Legacy login?signup=1 resolves to registration.
+
+SERP now has one production entry at https://serp.sitocal.com/: public introduction when anonymous, existing functional research workspace when authenticated. /serp and /serp-home are query-preserving redirects to that entry. Public research CTAs go through sign-in instead of returning to their own introduction. Shared server/client URL helpers also canonicalize editor/converter and secondary workspace host links, preserving safe existing destinations and rejecting external return URLs.
+
+Added Admin Dashboard to desktop/mobile workspace navigation after Account & sign-in, public Resources, and the sign-in/signup page. It links to the separate protected admin hostname; customer sessions gain no admin rights. Existing Emerald Studio design, API routes, account records, admin security and generator themes retained.
+
+Validation: syntax checks and all 94 tests pass. Three new regressions cover canonical route generation, safe returns, admin-link visibility and session-aware production-host redirects. Local browser verified anonymous /app -> sign-in -> workspace, signed-in registration -> workspace, and working SERP controls. Browser creation suffered a long tool delay; subsequent UI checks completed normally. No production customer account or provider action was created. Live pre-release checks confirmed all mentioned URLs were reachable, admin.sitocal.com is now healthy (0.5.0) with an existing owner, and customer cookies use the sitocal.com domain with Secure. Google/GitHub/LinkedIn OAuth configuration remains absent (Setup required), a known deployment task. Publication/live verification pending. Refresh the build records/source archive after merge.
+
 # Session 058 — Central administration, stages 1–3
 2026-11-01 (Asia/Karachi). Version 0.5.0.
 

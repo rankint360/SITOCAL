@@ -2,7 +2,7 @@ import {handleAdmin}from'./lib/admin.mjs';
 import{assertAccess,initializeAccess,routeFeature,planCatalog,setting,atomic}from'./lib/admin-data.mjs';
 import{resolveConnection,managedProviders}from'./lib/shared-connectors.mjs';
 import{redeemBonus,attachReferral,customerRewards}from'./lib/rewards.mjs';
-import {pageAliases,canonicalPagePath} from './public/page-routes.js';
+import {pageAliases,canonicalPagePath,pageHref,entryRedirect} from './public/page-routes.js';
 import {extraProviders,aiProviders,validateExtraConfig,verifyConnector,executeConnector} from './lib/connectors.mjs';
 import {serpumLegacyRoutes} from './public/serpum-data.js';
 import {createSerpumGeocoder} from './lib/serpum-geocode.mjs';
@@ -77,13 +77,14 @@ async function handler(req,res){
     }
     if(session&&cookieName!=='sitocal_session'&&!p.startsWith('/api/auth/'))res.setHeader('Set-Cookie',[cookie(token),cookie('',true,cookieName)]);
     const user=session?.user_id;
+    if(['GET','HEAD'].includes(req.method)){const redirect=entryRedirect({baseDomain,hostname,path:p,search:url.search,signedIn:Boolean(user)});if(redirect){res.writeHead(redirect.status,{Location:redirect.location});return res.end();}}
     if(['POST','PUT','PATCH','DELETE'].includes(req.method)){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
       if(user && p!=='/api/serpum/geocode' && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
     if((p==='/serpum'||p==='/api/serpum/geocode')&&setting(db,'toolEnabled:serpum',true)===false)throw new ProviderError('SERPUM is temporarily unavailable for maintenance',503);
     if(p==='/api/serpum/geocode'&&req.method==='POST'){rate('serpum-geocode:'+req.socket.remoteAddress,8);const input=await body(req,2048);return json(res,200,await geocodeSerpum(input));}
-    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.5.0',mode:'development-alpha'});
+    if(p==='/api/health')return json(res,200,{status:'ok',version:'0.5.1',mode:'development-alpha'});
     if(p==='/api/contact'&&req.method==='POST'){
       rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
       if(b.website)throw new ProviderError('Message could not be accepted',400);
@@ -202,20 +203,20 @@ async function handler(req,res){
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
     if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
-    const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp-home',indexerHome=p==='/google-indexer';
+    const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));
-    const privateTool=Boolean(user&&['/api-mcp','/google-indexer'].includes(p));
-    if(privateTool)entry=entry.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
+    const privateTool=Boolean(user&&(['/api-mcp','/google-indexer'].includes(p)||serpHome));
+    if(privateTool||['/login','/register'].includes(p))entry=entry.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
     if(!privateTool&&(serpHome||indexerHome||publicHome||publicRoute)){
       const production=Boolean(baseDomain&&(hostname===baseDomain||hostname.endsWith('.'+baseDomain)));
-      const href=(name,query='')=>{if(['developer','indexing'].includes(name)&&!user)return href('login','?returnTo='+encodeURIComponent('/'+canonicalPagePath(name)));if(name==='serpum'||name.startsWith('serpum/'))return production?'https://serp.'+baseDomain+'/'+name+query:'/'+name+query;if(name==='serp-landing')return production?'https://serp.'+baseDomain+'/'+query:'/serp-home'+query;const sub=['editor','wp','serp'].includes(name)?name:['app','publish','integrations','domains','jobs','login','developer','indexing','billing','account'].includes(name)?'app':'';return production?`https://${sub?sub+'.':''}${baseDomain}${['app','editor','wp','landing'].includes(name)?'/':'/'+canonicalPagePath(name)}${query}`:(name==='landing'?'/':'/'+canonicalPagePath(name))+query;};
+      const href=(name,query='')=>pageHref(name,{baseDomain,hostname,signedIn:Boolean(user)},query);
       const darkLogo='<span class="logo"><img class="brand-lockup" src="/assets/brand/logo-dark.svg" alt="Sitocal" width="155" height="47"></span>';
       const rendered=serpHome?{html:serpLanding({href,darkLogo}),title:'Sitocal SERP — Research your next local opportunity'}:indexerHome?{html:indexerLanding({href,darkLogo}),title:'Google Indexer — Sitocal'}:publicHome?{html:marketingHome({href,darkLogo,planCatalog:planCatalog(db)}),title:'Sitocal — Your local growth workspace'}:publicPage(p.slice(1),{href,darkLogo,planCatalog:planCatalog(db)});
       const title=serpHome||indexerHome||publicHome?rendered.title:rendered.title+' — Sitocal';
       if(serpHome||indexerHome)entry=entry.replace('Sitocal brings local website creation, editing, WordPress exports and search research into one workspace.',serpHome?'Research local rankings, competitors and demand with connected provider data in Sitocal.':'Inspect verified URLs, queue bulk GSC checks, submit sitemaps and export per-URL CSV reports with Sitocal.');
       entry=entry.replace('<title>Sitocal — Your local growth workspace</title>','<title>'+title+'</title>').replace('<div id="root"><div class="loading">Sitocal is opening your workspace…</div></div>','<div id="root">'+rendered.html+'</div>');
       if(rendered.description)entry=entry.replace('Sitocal brings local website creation, editing, WordPress exports and search research into one workspace.',rendered.description.replaceAll('&','&amp;').replaceAll('"','&quot;'));
-      const canonical=p==='/serpum'||p.startsWith('/serpum/')?(production?'https://serp.'+baseDomain+p:origin+p):serpHome?(production?'https://serp.'+baseDomain+'/':origin+'/serp-home'):(production?'https://'+baseDomain+p:origin+p);entry=entry.replace('</head>','<link rel="canonical" href="'+canonical+'"></head>');
+      const canonical=p==='/serpum'||p.startsWith('/serpum/')?(production?'https://serp.'+baseDomain+p:origin+p):serpHome?(production?'https://serp.'+baseDomain+'/':origin+'/serp'):(production?'https://'+baseDomain+p:origin+p);entry=entry.replace('</head>','<link rel="canonical" href="'+canonical+'"></head>');
     }
     res.end(entry);
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
