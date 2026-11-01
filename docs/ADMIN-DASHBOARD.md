@@ -46,6 +46,9 @@ Local testing: /admin on localhost. The Render preview hostname can expose /admi
 - Hosting/repository/registrar destinations are not shared between customers. Merchant and OAuth application secrets remain deployment settings.
 - Customer Billing supports access-code redemption, referral attribution and viewing owned grants/codes. Integrations distinguishes platform-managed credentials from the customer's own connection.
 
+## Release verification
+PR #15 merged into main at 93040d955bb0f68161f92ff8eafc800470833169. Syntax checks and all 91 tests passed. All 154 source files matched the review branch. All six existing hostnames served 0.5.0; five changed admin/customer assets byte-matched source, public plan catalog matched the expected initial plans, and customer-host admin APIs rejected access. The admin hostname itself is still pending DNS/Render configuration and first-owner setup.
+
 ## Validation and remaining operations
 Syntax checks and the full regression suite are required before release. New HTTP coverage exercises bootstrap/invitations, role restrictions, CSRF, account holds/session/key revocation, tool switches, plan publishing, code redemption/limits, referral attribution, encrypted connector metadata, key rotation/removal and password/session revocation. New service fixtures cover shared quota exhaustion/BYOK priority, versioned subscription preservation, grant expiry, promo caps, one-time paid referral reward/reversal, and a three-month discounted checkout with old-price webhook reconciliation. No real Stripe/provider charge or production account mutation was performed.
 
