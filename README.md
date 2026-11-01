@@ -1,3 +1,6 @@
+## Administration release 0.5.0
+Central administration is implemented for admin.sitocal.com. First-owner signup requires a deployment setup code; see [activation and operations](docs/ADMIN-DASHBOARD.md). DNS and real owner setup are operator steps.
+
 ## Navigation release 0.4.1
 API & MCP and Google Indexer use unified public/signed-in entry paths. Legacy aliases redirect, and Integrations follows Pricing. See [page audit](docs/PAGE-CONSOLIDATION.md).
 
@@ -6,7 +9,7 @@ All 21 integration catalog entries now have API actions or guided workflows. See
 
 # Sitocal
 
-Private development alpha, version 0.4.1. Approved brand: Sitocal. Design: Emerald Studio — white surfaces, emerald actions, Manrope headings and Inter interface. See docs/SITOCAL-EMERALD-DESIGN.md. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
+Private development alpha, version 0.5.0. Approved brand: Sitocal. Design: Emerald Studio — white surfaces, emerald actions, Manrope headings and Inter interface. See docs/SITOCAL-EMERALD-DESIGN.md. Existing Render deployment serves sitocal.com and app/editor/wp/serp subdomains; see STATUS.md for the latest verified release.
 
 ## Run
 
