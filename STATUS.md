@@ -1,3 +1,14 @@
+# Session 058 — Central administration, stages 1–3
+2026-11-01 (Asia/Karachi). Version 0.5.0.
+
+Stage 1: separate protected admin signup/login/password changes, first-owner deployment-code bootstrap, email-bound admin invitations, Owner/Support/Billing/Operations roles, host-only admin sessions, CSRF/rate/recent-password checks, admin disabling safeguards and action audit. Customer approval/hold/suspension/termination revokes sessions/API keys; per-user/global tool permissions apply across protected subdomain APIs, API/MCP and indexing workers. Existing accounts migrate active; new-account approval is atomic for email/social signup. admin.sitocal.com is accepted by host configuration.
+
+Stage 2: versioned plan prices/site limits/tool flags, synchronized public/private prices, grandfathered subscription versions, expiring/revocable complimentary or verified manual-payment grants, access codes, percentage/fixed discounts and first-invoice/repeating/lifetime durations. Checkout promo reservations and price terms are persisted. Billing records/reconciliation validate actual known Stripe state without blind retries or automatic charges/migrations.
+
+Stage 3: assigned referral codes, pre-subscription attribution, capped/idempotent positive-paid-invoice bonus grants and matching refund reversal; customer reward forms. Global provider controls, encrypted shared AI/research keys with atomic per-user/global request caps, and audited customer-specific key addition/rotation/removal. Shared deployment/OAuth credentials remain disallowed; provider/merchant configuration is still required.
+
+Validation: syntax checks and all 91 tests pass, including separate-host isolation, CSRF, RBAC, access revocation, grants, recurring discounts, referrals, quota enforcement and legacy regressions. Local browser verified separate admin login, overview, price/version controls, customer selection and grant forms. Existing source/customer themes retained. DNS lookup for admin.sitocal.com returned ENOTFOUND; no real owner or production provider credentials created. Activation requires adding the custom hostname in Render, CNAME in Cloudflare and a generated ADMIN_BOOTSTRAP_CODE, then privately creating the first owner. See docs/ADMIN-DASHBOARD.md for activation, exact implemented scope and known limits (password auth currently, MFA/recovery later; discounts require merchant configuration). Publication/live verification pending. Records and portable archive to be refreshed after checks and merge.
+
 # Session 057 — Navigation and overlapping-page reconciliation
 2026-10-31 (Asia/Karachi). Version 0.4.1.
 
