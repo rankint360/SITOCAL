@@ -1,3 +1,5 @@
+Release verification: PR #16 merged at 11bb382c1e6f26739778785a77c25ebe50e68e43. All seven hosts served 0.5.1; nine live entry checks and four asset comparisons passed. Admin menu target is active. No open PRs.
+
 # Entry-point update — 0.5.1
 2026-11-01. This update supersedes the earlier separate SERP landing/workspace URL arrangement.
 
