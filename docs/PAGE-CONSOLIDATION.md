@@ -1,3 +1,17 @@
+# Entry-point update — 0.5.1
+2026-11-01. This update supersedes the earlier separate SERP landing/workspace URL arrangement.
+
+- Canonical dashboard: app.sitocal.com/. Root sitocal.com/app redirects into the app entry. Anonymous dashboard visits redirect to sign-in; signup is not rendered inside the dashboard route.
+- Canonical signup: app.sitocal.com/register. Signed-in users return to their requested safe workspace instead of seeing another signup form.
+- Canonical sign-in: app.sitocal.com/login. login?signup=1 remains a redirect to canonical registration. Switching forms changes the URL, and headings/titles distinguish the actions.
+- Canonical SERP entry: serp.sitocal.com/. Anonymous visitors see the introduction and sign-in CTA; signed-in visitors see research tools. /serp and /serp-home redirect here with queries retained.
+- Editor/converter and secondary workspace links use canonical subdomains through the shared server/client URL helper.
+- Admin Dashboard is linked from public Resources, authentication pages, and the workspace menu after Account & sign-in (desktop/mobile). Separate admin authentication and role checks still apply; showing a link never grants access.
+- API/MCP and Google Indexer keep their existing public/private state-aware behavior.
+- Redirect return destinations remain allowlisted. Registration APIs remain separate from login APIs; no accounts are merged or removed.
+
+94 tests passed, including new production-host redirect and navigation tests. Browser checked the account/SERP flow with disposable local fixtures. The admin hostname is now DNS-active; live OAuth methods still report Google/GitHub/LinkedIn as unconfigured. Provider credentials are not fabricated or activated by this routing release.
+
 # Page and navigation consolidation — 0.4.1
 2026-10-31. Approved Emerald Studio design retained.
 
