@@ -15,6 +15,20 @@ export function parseCoverageCsv(text){
  row.push(field.trim());if(row.some(Boolean))rows.push(row);
  const headers=rows.shift()?.map(key=>key.replace(/^\uFEFF/,'').toLowerCase())||[];
  const required=['zip','city','state','niche','model','payout'];
+ const source=['ringba_offer_name','top_net_duration_payout','top_net_cpl_payout'].map(key=>headers.indexOf(key));
+ if(source.every(index=>index>=0)){
+  const location=['zip','city','state'].map(key=>headers.indexOf(key));
+  if(location.some(index=>index<0))throw Error('LeadSmart CSV needs ZIP, city and state.');
+  const normalized=rows.flatMap(cells=>{
+   const [offer,duration,cpl]=source.map(index=>cells[index]??'');
+   const market=location.map(index=>cells[index]??'');
+   if(!/^\d{5}$/.test(market[0])||!market[1]||!/^[A-Z]{2}$/i.test(market[2]))return [];
+   return [['call',duration],['cpl',cpl]].filter(([,payout])=>/^\d+(?:\.\d+)?$/.test(payout)).map(pair=>[...market,offer,...pair]);
+  });
+  rows.length=0;
+  for(const cells of normalized)rows.push(cells);
+  headers.splice(0,headers.length,...required);
+ }
  if(!required.every(key=>headers.includes(key)))throw Error('Include zip, city, state, niche, model and payout columns.');
  if(!rows.length||rows.length>800000)throw Error('Import between 1 and 800,000 rows.');
  const seen=new Set();
@@ -100,3 +114,4 @@ export function initCoverage(){
  get('filters').addEventListener('change',()=>{page=0;render();});
  render();
 }
+
