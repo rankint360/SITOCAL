@@ -1,3 +1,7 @@
+# Session 077 — Native LeadSmart CSV import
+
+2026-11-03. Coverage Intelligence accepts LeadSmart exports in the browser and separates duration and CPL. Rows without usable location data and payout values expressed as ranges are excluded. Validated 233,963 payout records across 39,861 ZIPs using the supplied export. Syntax checks and all 102 tests passed. Importer code shipped to main in f9e2012. Production deployment verification is pending. Next action is to confirm the deployed asset and obtain an approved recurring source for automatic refresh.
+
 # Session 076 — LeadSmart coverage explorer
 
 2026-11-03. Replaced the planned coverage page with an Emerald Studio explorer for city and ZIP, niche, state, overlapping ZIP bundles, saved markets and configurable acquisition estimates. Authorized CSVs are parsed in the browser; payout models are separated. The user will provide the authorized feed URL or schema before live data integration. Syntax checks and all 102 tests passed with fixtures.
