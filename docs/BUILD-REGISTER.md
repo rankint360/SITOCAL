@@ -1,3 +1,7 @@
+# Session 063 — Google Indexer workspace
+
+2026-11-03. Added Overview, Submit, Jobs and Usage tabs to the signed-in Google Indexer. Submit supports pasted URLs and bounded TXT/CSV imports, deduplicates normalized URLs and previews allowance. Existing Search Console inspection and sitemap actions remain available. Jobs show progress, per-URL outcomes and CSV; Usage reflects the same account allowance enforced by the queue. Google authorization started from the Indexer returns to Submit. Syntax checks and all 95 tests passed. Live Search Console actions and deployment are pending verification.
+
 # Session 062 — Website operations workspace
 
 2026-11-03. Added My Websites search and layouts, Generations with template and AI job history, Deployments with provider submission outcomes, Form Leads with hosted contact forms and an account-scoped inbox, and manual Call Earnings grouped by currency. Upgrade uses the existing SITOCAL plan catalog, Stripe configuration and verified manual payment workflow. ZIP exports and publishing include the hosted contact form link. Existing published sites need a fresh export or publish to add the link. Ringba sync, hosted checkout via crypto and automatic deployment verification are outside this release. Syntax checks and all 95 tests passed, including lead submission, cross-account isolation and payout updates. Next: verify deployment and signed-in views on Render.

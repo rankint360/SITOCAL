@@ -10,7 +10,7 @@ import {marketingHome,publicPage,publicRoutes} from './public/marketing.js';
 import {navigationRoutes} from './public/navigation.js';
 import { serpLanding,indexerLanding } from './public/product-landings.js';
 import { socialMethods,authOrigin,startSocial,finishSocial,flowCookie } from './lib/social-auth.mjs';
-import { queueInspection,inspectionBatch,startInspectionWorker,batchCsv } from './lib/indexing-jobs.mjs';
+import { queueInspection,inspectionBatch,startInspectionWorker,batchCsv,inspectionUsage } from './lib/indexing-jobs.mjs';
 import { billingStatus,checkout,billingPortal,stripeWebhook,checkSiteCapacity } from './lib/billing.mjs';
 import { handlePublicAccess,createApiKey,listApiKeys,revokeApiKey } from './lib/access.mjs';
 import { indexingAction } from './lib/indexing.mjs';
@@ -151,7 +151,7 @@ async function handler(req,res){
     if(p==='/api/rewards/redeem'&&req.method==='POST'){rate('reward:'+user,10);return json(res,200,redeemBonus(db,user,(await body(req)).code));}
     if(p==='/api/rewards/referral'&&req.method==='POST'){rate('reward:'+user,10);return json(res,200,attachReferral(db,user,(await body(req)).code));}
     if(p==='/api/google/start'&&req.method==='POST')return json(res,200,{url:googleStart(db,user,await body(req))});
-    if(p==='/api/google/callback'&&req.method==='GET'){await googleCallback(store,url.searchParams,user);res.writeHead(303,{Location:'/serp?google=connected'});return res.end();}
+    if(p==='/api/google/callback'&&req.method==='GET'){const destination=await googleCallback(store,url.searchParams,user);res.writeHead(303,{Location:destination});return res.end();}
     if(p==='/api/google/properties'&&req.method==='GET')return json(res,200,await googleProperties(store,user));
     if(p==='/api/google/report'&&req.method==='POST')return json(res,200,await googleReport(store,user,await body(req)));
     if(p==='/api/account/methods'&&req.method==='GET'){const password=db.prepare('SELECT password FROM users WHERE id=?').get(user).password;return json(res,200,{identities:db.prepare('SELECT provider,email,name,created FROM login_identities WHERE user_id=?').all(user),hasPassword:password!=='oauth-only',providers:socialMethods()});}
@@ -163,7 +163,7 @@ async function handler(req,res){
     if(p==='/api/developer/keys'&&req.method==='POST')return json(res,201,createApiKey(db,user,await body(req)));
     const revoke=p.match(/^\/api\/developer\/keys\/([a-f0-9-]{36})$/);if(revoke&&req.method==='DELETE')return json(res,200,revokeApiKey(db,user,revoke[1]));
     if(p==='/api/indexing/batches'&&req.method==='POST')return json(res,202,await queueInspection(store,user,await body(req)));
-    if(p==='/api/indexing/batches'&&req.method==='GET')return json(res,200,{batches:db.prepare('SELECT * FROM indexing_batches WHERE user_id=? ORDER BY created DESC LIMIT 50').all(user)});
+    if(p==='/api/indexing/batches'&&req.method==='GET')return json(res,200,{usage:inspectionUsage(db,user),batches:db.prepare(`SELECT b.*, count(i.id) AS total, count(CASE WHEN i.status IN ('completed','failed') THEN 1 END) AS finished FROM indexing_batches b LEFT JOIN indexing_items i ON i.batch_id=b.id WHERE b.user_id=? GROUP BY b.id ORDER BY b.created DESC LIMIT 50`).all(user)});
     const batch=p.match(/^\/api\/indexing\/batches\/([a-f0-9-]{36})(\/csv)?$/);if(batch&&req.method==='GET'){const result=inspectionBatch(db,user,batch[1]);if(!batch[2])return json(res,200,result);res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="sitocal-index-inspections.csv"'});return res.end(batchCsv(result));}
     if(p==='/api/indexing/history'&&req.method==='GET')return json(res,200,{events:db.prepare('SELECT * FROM indexing_events WHERE user_id=? ORDER BY created DESC LIMIT 50').all(user).map(e=>({...e,config:JSON.parse(e.config),result:JSON.parse(e.result)}))});
     const indexAction=p.match(/^\/api\/indexing\/(properties|sitemaps|inspect|submit)$/);

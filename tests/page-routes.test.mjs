@@ -26,6 +26,8 @@ test('legacy pages redirect with queries, public tool introductions remain reada
  const registered=await fetch(origin+'/api/auth/register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({email:'route@example.invalid',password:'fixture-long-password',invite:'fixture'})});assert.equal(registered.status,200);
  const cookie=registered.headers.get('set-cookie').split(';')[0];
  for(const path of ['/api-mcp','/google-indexer']){const r=await fetch(origin+path,{headers:{Cookie:cookie}});assert.equal(r.status,200);const html=await r.text();assert(html.includes('noindex,nofollow'));assert(!html.includes('aria-label="Main navigation"'));assert.equal(r.headers.get('cache-control'),'no-store');}
+ const {usage,batches}=await(await fetch(origin+'/api/indexing/batches',{headers:{Cookie:cookie}})).json();
+ assert.equal(usage.remaining,200);assert.equal(usage.batchLimit,100);assert.equal(usage.used,0);assert.deepEqual(batches,[]);
  for(const endpoint of ['/api/developer/keys','/api/indexing/history','/api/indexing/batches'])assert.equal((await fetch(origin+endpoint,{headers:{Cookie:cookie}})).status,200);
  }finally{proc.kill();await once(proc,'exit');rmSync(dir,{recursive:true,force:true});}
 });
