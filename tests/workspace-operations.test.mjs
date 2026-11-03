@@ -92,8 +92,26 @@ test('website leads and payout records stay isolated and generation history link
     const inspection=await inspected.json();
     assert.deepEqual(inspection.pages.map(page=>page.name),['nested/index.html','nested/about.html']);
     assert.equal((await fetch(origin+'/api/wp/inspect',{method:'POST',headers:{Origin:'https://foreign.example','Content-Type':'application/zip'},body:upload})).status,403);
+    const settings='/api/account/settings';
+    const defaultsProfile=await(await call(settings,{cookie})).json();
+    assert.equal(defaultsProfile.public,false);
+    assert.equal((await call(settings)).status,401);
+    const profile={name:'Austin Flow <Owner>',theme:'dark',public:true,handle:'austin-flow',website:'https://example.invalid',x:'',github:'fixture',linkedin:''};
+    assert.equal((await call(settings,{method:'PUT',cookie,body:profile})).status,403);
+    assert.equal((await call(settings,{method:'PUT',cookie,csrf,body:{...profile,website:'javascript:alert(1)'}})).status,400);
+    assert.equal((await call(settings,{method:'PUT',cookie,csrf,body:profile})).status,200);
+    assert.equal((await call(settings,{method:'PUT',cookie:other,csrf:otherAuth.csrf,body:profile})).status,409);
+    const sessionProfile=await(await call('/api/session',{cookie})).json();
+    assert.equal(sessionProfile.theme,'dark');
+    assert.equal(sessionProfile.user.displayName,profile.name);
+    const page=await(await call('/people/austin-flow')).text();
+    assert(page.includes('Austin Flow &lt;Owner&gt;'));
+    assert(!page.includes('test@example.com'));
+    assert(!page.includes(site.id));
+    assert.equal((await call(settings,{method:'PUT',cookie,csrf,body:{...profile,public:false}})).status,200);
+    assert.equal((await call('/people/austin-flow')).status,404);
     const history=await(await call('/api/jobs',{cookie})).json();
     assert(history.jobs.some(job=>job.kind==='template-generation'&&job.site_id===site.id));
-    for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade','/support-tickets','/whats-new','/serp-checker','/call-intelligence','/editor-settings'])assert.equal((await call(path,{cookie})).status,200,path);
+    for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade','/support-tickets','/whats-new','/serp-checker','/call-intelligence','/editor-settings','/settings'])assert.equal((await call(path,{cookie})).status,200,path);
   }finally{proc.kill();await once(proc,'exit');const target=resolve(dir),base=resolve(tmpdir())+sep;if(!target.startsWith(base)||!target.split(sep).pop().startsWith('sitocal-api-'))throw Error('Unsafe test cleanup');rmSync(target,{recursive:true,force:true});}
 });

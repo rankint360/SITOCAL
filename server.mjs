@@ -1,3 +1,4 @@
+import { initProfiles, accountProfile, saveProfile, publishedProfile, publishedAvatar } from './lib/account-profile.mjs';
 import { conversionFormats, inspectConversionArchive, wordpressPackage } from './lib/wp-converter.mjs';
 import {handleAdmin}from'./lib/admin.mjs';
 import{assertAccess,initializeAccess,routeFeature,planCatalog,setting,atomic}from'./lib/admin-data.mjs';
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS website_leads(id TEXT PRIMARY KEY, site_id TEXT NOT N
 CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
 CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
 `);
+initProfiles(db);
 function editorPreferences(user){
  const row=db.prepare('SELECT settings FROM editor_preferences WHERE user_id=?').get(user);
  return row?JSON.parse(row.settings):{showGuide:true,saveOnPreview:false,confirmRemove:true,showInsert:true,aiProvider:'',host:'',source:''};
@@ -82,7 +84,7 @@ async function handler(req,res){
     const adminSurface=adminHost||['localhost','127.0.0.1'].includes(hostname)||process.env.ADMIN_ALLOW_PREVIEW==='true'&&hostname===process.env.RENDER_EXTERNAL_HOSTNAME;
     if(p.startsWith('/api/admin/')){if(!adminSurface)throw new ProviderError('Use the administrator hostname',403);if(await handleAdmin(req,res,{p,db,store,body,json,origin,url,rate}))return;}
     if(p==='/api/plans/public'&&req.method==='GET')return json(res,200,{plans:planCatalog(db).map(({code,amount,sites,features})=>({code,amount,sites,features}))});
-    if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(req.method!=='GET')throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(await readFile(path.join(root,'public/admin.html')));}
+    if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup','/settings'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(req.method!=='GET')throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(await readFile(path.join(root,'public/admin.html')));}
     if(adminHost&&!p.startsWith('/assets/')&&p!=='/api/health')throw new ProviderError('Use the customer application hostname for this endpoint',403);
     if(['GET','HEAD'].includes(req.method)&&Object.hasOwn(pageAliases,p)){res.writeHead(301,{Location:pageAliases[p]+url.search});return res.end();}
     if(p==='/serpum/features'){res.writeHead(301,{Location:'/serpum/features/'+url.search});return res.end();}
@@ -135,7 +137,21 @@ async function handler(req,res){
       if(!name||name.length>120||email.length>200||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||message.length<10||message.length>5000||company.length>150||topic.length>100||!['on',true].includes(b.consent))throw new ProviderError('Enter a name, valid email, message (10–5000 characters) and privacy consent',400);
       const ref=id();db.prepare('INSERT INTO enquiries VALUES(?,?,?,?,?,?,?)').run(ref,name,email,company,topic,message,new Date().toISOString());return json(res,201,{reference:ref,message:'Your message has been saved for team review. Reference: '+ref+'. You can also email contact@sitocal.com directly.'});
     }
-    if(p==='/api/session')return json(res,200,{user:user?{id:user,email:session.email}:null,csrf:session?.csrf||null,googleConfigured:googleReady()});
+    const profileMatch=p.match(/^\/people\/([a-z0-9][a-z0-9-]{2,39})(\/photo)?$/);
+    if(profileMatch&&req.method==='GET'){
+      const handle=profileMatch[1];
+      if(profileMatch[2]){
+        const row=publishedAvatar(db,handle);
+        if(!row)throw new ProviderError('Profile photo not found',404);
+        res.writeHead(200,{'Content-Type':row.media,'Cache-Control':'no-store'});return res.end(row.avatar);
+      }
+      const profile=publishedProfile(db,handle);
+      if(!profile)throw new ProviderError('Public profile not found',404);
+      const links=[[profile.website,'Website'],[profile.x&&'https://x.com/'+profile.x,'X'],[profile.github&&'https://github.com/'+profile.github,'GitHub'],[profile.linkedin&&'https://www.linkedin.com/in/'+profile.linkedin,'LinkedIn']];
+      res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex'});
+      return res.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(profile.name)} · Sitocal</title><link rel="stylesheet" href="/assets/style.css"><main class="content"><section class="panel">${profile.hasAvatar?`<img src="/people/${handle}/photo" width="96" height="96" alt="">`:''}<h1>${esc(profile.name)}</h1><p>@${handle}</p><ul>${links.filter(([href])=>href).map(([href,label])=>`<li><a href="${esc(href)}" rel="nofollow ugc noreferrer">${label}</a></li>`).join('')}</ul></section></main></html>`);
+    }
+    if(p==='/api/session')return json(res,200,{user:user?{id:user,email:session.email,displayName:accountProfile(db,user).name}:null,theme:user?accountProfile(db,user).theme:null,csrf:session?.csrf||null,googleConfigured:googleReady()});
     if(p==='/api/auth/methods'&&req.method==='GET')return json(res,200,{providers:socialMethods(),origin:authOrigin(publicOrigin),signupOpen:process.env.ALLOW_SIGNUPS!=='false',inviteRequired:Boolean(process.env.REGISTRATION_CODE)});
     const social=p.match(/^\/api\/auth\/oauth\/(google|github|linkedin)\/(start|callback)$/);
     if(social){
@@ -173,6 +189,11 @@ async function handler(req,res){
     }
     if(p.startsWith('/api/')&&!user)throw new ProviderError('Sign in to continue',401);
     if(user&&p.startsWith('/api/'))assertAccess(db,user,routeFeature(p,req.method));
+    if(p==='/api/account/settings'&&req.method==='GET')return json(res,200,accountProfile(db,user));
+    if(p==='/api/account/settings'&&req.method==='PUT'){
+      rate('account-settings:'+user,12);
+      return json(res,200,saveProfile(db,user,await body(req,360000)));
+    }
     if(p==='/api/rewards'&&req.method==='GET')return json(res,200,customerRewards(db,user));
     if(p==='/api/rewards/redeem'&&req.method==='POST'){rate('reward:'+user,10);return json(res,200,redeemBonus(db,user,(await body(req)).code));}
     if(p==='/api/rewards/referral'&&req.method==='POST'){rate('reward:'+user,10);return json(res,200,attachReferral(db,user,(await body(req)).code));}
@@ -350,7 +371,7 @@ async function handler(req,res){
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/settings','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));
