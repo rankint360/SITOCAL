@@ -1,3 +1,7 @@
+# Session 073 — Reviewable AI edits and end-to-end launch fixture
+
+2026-11-03. Added editor section reuse and an OpenAI/OpenRouter rewrite workflow that compares the current and suggested text before applying a draft edit. Added a full disposable HTTP fixture covering website creation, a review-only AI rewrite, Netlify package submission and status, a hosted enquiry, Search Console binding and inspection, and DataForSEO rank history. Syntax checks and all 101 tests passed. No live provider calls were made per the user's verification preference.
+
 # Session 072 — Launch probes, destination overrides and location lookup
 
 2026-11-03. Added bounded HTTPS homepage, sitemap and contact-link checks with public IPv4 pinning and redirects disabled. Added per-site repository, branch and hosting project overrides, homepage LocalBusiness markup, and a searchable provider city catalog for SERP checks and keyword tracking. Syntax checks and all 100 tests passed with local and provider fixtures. These checks do not submit live enquiries or certify DNS/provider deployment. Cloudflare hook deployments still require provider dashboard verification.

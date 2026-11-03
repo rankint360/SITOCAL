@@ -30,7 +30,7 @@ import { esc,draftSite,validateSite,renderPage,staticFiles,converterFiles,slug }
 import { zip,unzip } from './lib/archive.mjs';
 import { ProviderError,request,pushRepository,deploy,checkSerp,demand } from './lib/providers.mjs';
 import { googleReady,googleStart,googleCallback,googleProperties,googleReport } from './lib/google.mjs';
-import { generateSite } from './lib/ai.mjs';
+import { generateSite,rewriteWebsiteSection } from './lib/ai.mjs';
 import { hostConfig } from './lib/config.mjs';
 import { sessionCandidates,findManifest } from './lib/migration.mjs';
 
@@ -396,6 +396,13 @@ async function handler(req,res){
     const siteRoute=p.match(/^\/api\/sites\/([a-f0-9-]+)(?:\/(.*))?$/);
     if(siteRoute){
       const [,siteId,action]=siteRoute,site=ownedSite(user,siteId);
+      if(action==='rewrite-section'&&req.method==='POST'){
+        assertAccess(db,user,'editor');
+        const input=await body(req,12000),section=input.section;
+        if(input.reviewed!==true||!['openai','openrouter'].includes(input.provider)||!['concise','friendly','clear'].includes(input.style)||!section||!['heading','body','cta'].every(key=>typeof section[key]==='string')||section.heading.length>200||section.body.length>4000||section.cta.length>80)throw new ProviderError('Choose a provider, style and section, and authorize provider usage',400);
+        const credentials=connection(user,input.provider);
+        return json(res,200,await job(user,siteId,'section-rewrite',async()=>({section:await rewriteWebsiteSection(credentials,input.provider,{business:site.data.business,city:site.data.city,brief:site.data.businessBrief,style:input.style,section:{heading:section.heading,body:section.body,cta:section.cta}})})));
+      }
       if(action==='media'&&req.method==='GET'){
         assertAccess(db,user,'editor');
         return json(res,200,{images:db.prepare('SELECT id,name,media,length(bytes) AS size,created FROM website_media WHERE site_id=? ORDER BY rowid DESC').all(siteId)});
