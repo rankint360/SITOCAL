@@ -42,8 +42,27 @@ test('website leads and payout records stay isolated and generation history link
     assert.equal(callRecords.length,1);
     assert.equal(callRecords[0].cents,3000);
     assert.equal((await(await call('/api/workspace/calls',{cookie:other})).json()).records.length,0);
+    const phrase={niche:'Plumbing',service:'Drain cleaning',outcome:'Booked',phrase:'The kitchen sink backs up.'};
+    assert.equal((await call('/api/workspace/call-phrases',{method:'POST',cookie,csrf,body:phrase})).status,201);
+    const savedPhrase=(await(await call('/api/workspace/call-phrases',{cookie})).json()).phrases[0];
+    assert.equal(savedPhrase.phrase,phrase.phrase);
+    assert.equal((await(await call('/api/workspace/call-phrases',{cookie:other})).json()).phrases.length,0);
+    assert.equal((await call('/api/workspace/call-phrases',{method:'DELETE',cookie:other,csrf:otherAuth.csrf,body:{id:savedPhrase.id}})).status,404);
+    const screenshot='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9uoAAAAASUVORK5CYII=';
+    const report={title:'Editor issue',area:'Editor',kind:'Bug',severity:'Minor',message:'Cannot save the new heading.',screenshot};
+    const opened=await call('/api/workspace/support',{method:'POST',cookie,csrf,body:report});
+    assert.equal(opened.status,201);
+    const ticket=(await(await call('/api/workspace/support',{cookie})).json()).tickets[0];
+    const attachment='/api/workspace/support/attachment/'+ticket.messages[0].id;
+    assert.equal((await call(attachment,{cookie:other})).status,404);
+    const download=await call(attachment,{cookie});
+    assert.equal(download.status,200);
+    assert(download.headers.get('content-disposition').startsWith('attachment;'));
+    assert.deepEqual(Buffer.from(await download.arrayBuffer()),Buffer.from(screenshot.split(',')[1],'base64'));
+    assert.equal((await call('/api/workspace/support',{method:'POST',cookie:other,csrf:otherAuth.csrf,body:{ticket:ticket.id,message:'Cannot access this ticket'}})).status,404);
+    assert.equal((await call('/api/serp/check',{method:'POST',cookie,csrf,body:{keyword:'plumbing Austin',locationCode:2840}})).status,409);
     const history=await(await call('/api/jobs',{cookie})).json();
     assert(history.jobs.some(job=>job.kind==='template-generation'&&job.site_id===site.id));
-    for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade'])assert.equal((await call(path,{cookie})).status,200,path);
+    for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade','/support-tickets','/whats-new','/serp-checker','/call-intelligence'])assert.equal((await call(path,{cookie})).status,200,path);
   }finally{proc.kill();await once(proc,'exit');const target=resolve(dir),base=resolve(tmpdir())+sep;if(!target.startsWith(base)||!target.split(sep).pop().startsWith('sitocal-api-'))throw Error('Unsafe test cleanup');rmSync(target,{recursive:true,force:true});}
 });

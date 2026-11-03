@@ -1,3 +1,7 @@
+# Session 064 — Research and support workspace
+
+2026-11-03. Added the filterable SITOCAL release timeline, private support tickets with screenshot attachments and an owner/Support reply queue, a private customer phrase library, a focused SERP Checker using DataForSEO, and API/MCP onboarding for the existing scoped tools. Call phrases are manually supplied. Support replies stay in the ticket thread. SERP checks require a configured provider and can consume provider units. Syntax checks and all 95 tests passed, including private screenshot downloads, ticket lifecycle and account isolation. Next: verify the Render deployment and signed-in views.
+
 # Session 063 — Google Indexer workspace
 
 2026-11-03. Added Overview, Submit, Jobs and Usage tabs to the signed-in Google Indexer. Submit supports pasted URLs and bounded TXT/CSV imports, deduplicates normalized URLs and previews allowance. Existing Search Console inspection and sitemap actions remain available. Jobs show progress, per-URL outcomes and CSV; Usage reflects the same account allowance enforced by the queue. Google authorization started from the Indexer returns to Submit. Syntax checks and all 95 tests passed. Live Search Console actions and deployment are pending verification.

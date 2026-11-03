@@ -40,6 +40,12 @@ function legacyConnection(user,provider){const row=db.prepare('SELECT secret FRO
 function connection(user,provider){return resolveConnection(store,user,provider);}
 const leadStatuses=['new','contacted','forwarded','archived','spam'];
 db.exec(`
+CREATE TABLE IF NOT EXISTS support_tickets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),title TEXT NOT NULL,area TEXT NOT NULL,kind TEXT NOT NULL,severity TEXT NOT NULL,site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,status TEXT NOT NULL,updated TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS support_tickets_owner ON support_tickets(user_id,updated);
+CREATE TABLE IF NOT EXISTS support_messages(id TEXT PRIMARY KEY,ticket_id TEXT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,author TEXT NOT NULL,message TEXT NOT NULL,created TEXT NOT NULL,attachment BLOB,media TEXT);
+CREATE INDEX IF NOT EXISTS support_messages_thread ON support_messages(ticket_id,created);
+CREATE TABLE IF NOT EXISTS call_phrases(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),niche TEXT NOT NULL,service TEXT NOT NULL,phrase TEXT NOT NULL,outcome TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS call_phrases_owner ON call_phrases(user_id,created);
 CREATE TABLE IF NOT EXISTS website_leads(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, name TEXT NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL, created TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
 CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
@@ -168,6 +174,63 @@ async function handler(req,res){
     if(p==='/api/indexing/history'&&req.method==='GET')return json(res,200,{events:db.prepare('SELECT * FROM indexing_events WHERE user_id=? ORDER BY created DESC LIMIT 50').all(user).map(e=>({...e,config:JSON.parse(e.config),result:JSON.parse(e.result)}))});
     const indexAction=p.match(/^\/api\/indexing\/(properties|sitemaps|inspect|submit)$/);
     if(indexAction&&req.method==='POST'){rate('indexing:'+user,30);const input=await body(req);const result=await indexingAction(store,user,indexAction[1],input);if(['inspect','submit'].includes(indexAction[1]))db.prepare('INSERT INTO indexing_events VALUES(?,?,?,?,?,?)').run(id(),user,indexAction[1],JSON.stringify(input),JSON.stringify(result),new Date().toISOString());return json(res,200,result);}
+    const ticketAttachment=p.match(/^\/api\/workspace\/support\/attachment\/([a-zA-Z0-9-]+)$/);
+    if(ticketAttachment&&req.method==='GET'){
+      const row=db.prepare('SELECT m.media,m.attachment FROM support_messages m JOIN support_tickets t ON t.id=m.ticket_id WHERE m.id=? AND t.user_id=?').get(ticketAttachment[1],user);
+      if(!row?.attachment)throw new ProviderError('Attachment not found',404);
+      res.writeHead(200,{'Content-Type':row.media,'Content-Disposition':'attachment; filename="support-screenshot.'+(row.media==='image/png'?'png':'jpg')+'"','Cache-Control':'no-store'});return res.end(row.attachment);
+    }
+    if(p==='/api/workspace/support'&&req.method==='GET'){
+      const tickets=db.prepare('SELECT * FROM support_tickets WHERE user_id=? ORDER BY updated DESC LIMIT 50').all(user);
+      return json(res,200,{tickets:tickets.map(ticket=>({...ticket,messages:db.prepare('SELECT id,author,message,created,media FROM support_messages WHERE ticket_id=? ORDER BY rowid DESC LIMIT 50').all(ticket.id).reverse()}))});
+    }
+    if(p==='/api/workspace/support'&&req.method==='POST'){
+      rate('support-write:'+user,5);
+      const input=await body(req,1410000),message=String(input.message||'').trim(),title=String(input.title||'').trim();
+      if(!message||message.length>4000)throw new ProviderError('Enter a message of 1–4,000 characters',400);
+      let image=null,media=null;
+      if(input.screenshot){
+        const match=String(input.screenshot).match(/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/]+={0,2})$/);
+        if(!match)throw new ProviderError('Attach a PNG or JPEG screenshot',400);
+        image=Buffer.from(match[2],'base64');media=match[1];
+        if(image.length>1048576||!(media==='image/png'?image.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')):image.subarray(0,3).equals(Buffer.from('ffd8ff','hex'))))throw new ProviderError('Attach a valid PNG or JPEG under 1 MB',400);
+      }
+      const now=new Date().toISOString();
+      const ticket=atomic(db,()=>{
+        let ticket=input.ticket;
+        if(ticket){
+          const row=db.prepare('SELECT status FROM support_tickets WHERE id=? AND user_id=?').get(String(ticket),user);
+          if(!row)throw new ProviderError('Ticket not found',404);
+          if(row.status==='closed')throw new ProviderError('This ticket is closed',409);
+          if(db.prepare('SELECT count(*) n FROM support_messages WHERE ticket_id=?').get(ticket).n>=50)throw new ProviderError('This thread is full. Open a follow-up ticket.',409);
+          db.prepare("UPDATE support_tickets SET status='open',updated=? WHERE id=?").run(now,ticket);
+        }else{
+          if(!title||title.length>120||!['Builder','Editor','Publishing','Search','Billing','Other'].includes(input.area)||!['Bug','Question','Feature request'].includes(input.kind)||!['Minor','Major','Blocking'].includes(input.severity))throw new ProviderError('Enter a title and choose a report category',400);
+          if(db.prepare("SELECT count(*) n FROM support_tickets WHERE user_id=?").get(user).n>=50)throw new ProviderError('Ticket limit reached',429);
+          if(input.site)ownedSite(user,String(input.site));
+          ticket=id();
+          db.prepare('INSERT INTO support_tickets VALUES(?,?,?,?,?,?,?,?,?)').run(ticket,user,title,input.area,input.kind,input.severity,input.site||null,'open',now);
+        }
+        db.prepare('INSERT INTO support_messages VALUES(?,?,?,?,?,?,?)').run(id(),ticket,'customer',message,now,image,media);
+        return ticket;
+      });
+      return json(res,201,{id:ticket});
+    }
+    if(p==='/api/workspace/call-phrases'&&req.method==='GET')return json(res,200,{phrases:db.prepare('SELECT * FROM call_phrases WHERE user_id=? ORDER BY created DESC LIMIT 500').all(user)});
+    if(p==='/api/workspace/call-phrases'&&req.method==='POST'){
+      rate('call-phrases:'+user,20);
+      const input=await body(req,4096);
+      const niche=String(input.niche||'').trim(),service=String(input.service||'').trim(),phrase=String(input.phrase||'').trim();
+      if(!niche||niche.length>80||!service||service.length>100||!phrase||phrase.length>400||!['Unclassified','Booked','Paid'].includes(input.outcome))throw new ProviderError('Enter a niche, service, short phrase and outcome',400);
+      if(db.prepare('SELECT count(*) n FROM call_phrases WHERE user_id=?').get(user).n>=500)throw new ProviderError('Your phrase library holds up to 500 entries',409);
+      db.prepare('INSERT INTO call_phrases VALUES(?,?,?,?,?,?,?)').run(id(),user,niche,service,phrase,input.outcome,new Date().toISOString());
+      return json(res,201,{ok:true});
+    }
+    if(p==='/api/workspace/call-phrases'&&req.method==='DELETE'){
+      const input=await body(req,1024);
+      if(!db.prepare('DELETE FROM call_phrases WHERE id=? AND user_id=?').run(String(input.id||''),user).changes)throw new ProviderError('Phrase not found',404);
+      return json(res,200,{ok:true});
+    }
     if(p==='/api/workspace/leads'&&req.method==='GET'){
       const status=url.searchParams.get('status')||'all';
       if(status!=='all'&&!leadStatuses.includes(status))throw new ProviderError('Invalid lead status',400);
@@ -239,7 +302,7 @@ async function handler(req,res){
     if(p==='/api/serp/history'&&req.method==='GET')return json(res,200,{observations:db.prepare('SELECT * FROM observations WHERE user_id=? ORDER BY rowid DESC LIMIT 100').all(user).map(o=>({...o,config:JSON.parse(o.config),data:JSON.parse(o.data)}))});
     if(['/api/serp/check','/api/serp/demand','/api/serp/traffic','/api/serp/backlinks'].includes(p)&&req.method==='POST'){
       const b=await body(req);b.keyword=String(b.keyword||'').slice(0,200);b.domain=String(b.domain||'').trim().toLowerCase();b.locationCode=Number(b.locationCode);b.language=/^[a-z]{2}$/.test(b.language)?b.language:'en';b.device=b.device==='mobile'?'mobile':'desktop';b.competitors=String(b.competitors||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,3);
-      if(!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}$/.test(b.domain)||!Number.isInteger(b.locationCode)||b.locationCode<1||b.competitors.some(x=>! /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(x)))throw new ProviderError('Use a hostname and a provider location code',400);
+      if(!(p.endsWith('/check')&&!b.domain)&&!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}$/.test(b.domain)||!Number.isInteger(b.locationCode)||b.locationCode<1||b.competitors.some(x=>! /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(x)))throw new ProviderError('Use a hostname and a provider location code',400);
       if((p.endsWith('check')||p.endsWith('demand'))&&!b.keyword)throw new ProviderError('Keyword is required',400);
       const c=connection(user,'dataforseo');return json(res,200,await job(user,null,p.split('/').pop(),async()=>{
         if(p.endsWith('demand'))return demand(c,b);
@@ -258,7 +321,7 @@ async function handler(req,res){
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));

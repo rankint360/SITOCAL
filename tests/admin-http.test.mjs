@@ -22,6 +22,18 @@ test('admin isolation, bootstrap/invitations/RBAC, grants, pricing, promos, refe
  assert.equal((await call('/api/admin/view?section=users',customer)).status,401);
  assert.equal((await act({action:'users.status',user,status:'active'})).status,200);
  assert.equal((await call('/api/sites',customer)).status,200);
+ const report={title:'Editor save issue',area:'Editor',kind:'Bug',severity:'Major',message:'The edit could not be saved.'};
+ const sent=await call('/api/workspace/support',customer,report);assert.equal(sent.status,201);
+ const ticket=sent.data.id;
+ assert.equal((await call('/api/admin/view?section=support',customer)).status,401);
+ assert.equal((await call('/api/admin/view?section=support',owner)).data.tickets[0].id,ticket);
+ assert.equal((await act({action:'support.reply',ticket,status:'waiting',message:'Please share the exact steps.'})).status,200);
+ let thread=(await call('/api/workspace/support',customer)).data.tickets[0];
+ assert.equal(thread.status,'waiting');assert.equal(thread.messages[1].author,'support');
+ assert.equal((await call('/api/workspace/support',customer,{ticket,message:'It happens on the Contact page.'})).status,201);
+ assert.equal((await call('/api/workspace/support',customer)).data.tickets[0].status,'open');
+ assert.equal((await act({action:'support.reply',ticket,status:'closed',message:''})).status,200);
+ assert.equal((await call('/api/workspace/support',customer,{ticket,message:'Closed thread.'})).status,409);
  r=await call('/api/developer/keys',customer,{name:'Fixture',days:1,scopes:['sites:read']});assert.equal(r.status,201);const key=r.data.token;
  assert.equal((await fetch(origin+'/api/v1/sites',{headers:{Authorization:'Bearer '+key}})).status,200);
  assert.equal((await act({action:'users.tool',user,feature:'api',enabled:false})).status,200);
