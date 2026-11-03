@@ -1,3 +1,7 @@
+# Session 071 — Recovery, lead alerts and backup drill
+
+2026-11-03. Added verified-email enrollment, single-use password recovery, opt-in lead alerts, encrypted durable mail queue, and operator queue counts. Resend is disabled until configured. Added a non-overwriting SQLite backup tool and worker-disable flag for isolated restores. Syntax checks and all 97 tests passed. Local backup and restore preserved a disposable encrypted connector. User chose local and fixture verification. Real mail delivery and production restore remain unverified.
+
 # Session 070 — Website media and export portability
 
 2026-11-03. Added a private per-site image library with section placement and alt text. PNG, JPEG and WebP files are bounded, previewed in the sandbox, included in static publishing and ZIP export, and remapped to new asset IDs on ZIP reimport. Deleting an unused asset can affect older revisions. Syntax checks and all 96 tests passed with local fixtures. WordPress media import and external provider verification remain pending.

@@ -1,3 +1,4 @@
+import {initAccountMail,mailReady,mailStatus,queueAccountLink,requestRecovery,verifyAccountMail,recoverPassword,setLeadAlerts,queueLeadAlert,startAccountMailWorker} from './lib/account-mail.mjs';
 import {launchPlan,saveLaunchPlan,deploymentStatus} from './lib/launch.mjs';
 import { initProfiles, accountProfile, saveProfile, publishedProfile, publishedAvatar } from './lib/account-profile.mjs';
 import { conversionFormats, inspectConversionArchive, wordpressPackage } from './lib/wp-converter.mjs';
@@ -64,6 +65,7 @@ CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
 CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
 `);
 initProfiles(db);
+initAccountMail(db);
 function editorPreferences(user){
  const row=db.prepare('SELECT settings FROM editor_preferences WHERE user_id=?').get(user);
  return row?JSON.parse(row.settings):{showGuide:true,saveOnPreview:false,confirmRemove:true,showInsert:true,aiProvider:'',host:'',source:''};
@@ -160,7 +162,7 @@ async function handler(req,res){
         if(!form.get('company_url')){
           const recent=db.prepare('SELECT count(*) AS count FROM website_leads WHERE site_id=? AND created>=?').get(site.id,new Date(Date.now()-86400000).toISOString()).count;
           if(recent>=100)throw new ProviderError('This contact form has reached its daily limit',429);
-          db.prepare('INSERT INTO website_leads VALUES(?,?,?,?,?,?,?)').run(id(),site.id,name,email,message,'new',new Date().toISOString());
+          atomic(db,()=>{db.prepare('INSERT INTO website_leads VALUES(?,?,?,?,?,?,?)').run(id(),site.id,name,email,message,'new',new Date().toISOString());if(mailReady())queueLeadAlert(store,site.user_id,authOrigin(publicOrigin));});
         }
         res.writeHead(303,{Location:p+'?sent=1'});return res.end();
       }
@@ -225,8 +227,30 @@ async function handler(req,res){
       res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.business)}-${input.format}.zip"`,'Cache-Control':'no-store'});
       return res.end(archive);
     }
+    if(p==='/api/auth/recovery/request'&&req.method==='POST'){
+      rate('recover-request:'+req.socket.remoteAddress,5);
+      const input=await body(req,1024);requestRecovery(store,input.email,authOrigin(publicOrigin));
+      return json(res,202,{accepted:true});
+    }
+    if(p==='/api/auth/recovery/confirm'&&req.method==='POST'){
+      rate('recover-confirm:'+req.socket.remoteAddress,8);
+      const input=await body(req,2048);
+      return json(res,200,recoverPassword(db,input.token,input.password));
+    }
     if(p.startsWith('/api/')&&!user)throw new ProviderError('Sign in to continue',401);
     if(user&&p.startsWith('/api/'))assertAccess(db,user,routeFeature(p,req.method));
+    if(p==='/api/account/email'&&req.method==='GET')return json(res,200,mailStatus(db,user));
+    if(p==='/api/account/email/verify'&&req.method==='POST'){
+      rate('verify-mail:'+user,5);
+      if(!mailReady())throw new ProviderError('Email delivery is not configured yet',409);
+      queueAccountLink(store,user,session.email,'verify',authOrigin(publicOrigin));
+      return json(res,202,{accepted:true});
+    }
+    if(p==='/api/account/email/confirm'&&req.method==='POST'){
+      rate('verify-token:'+user,8);
+      return json(res,200,verifyAccountMail(db,user,(await body(req,1024)).token));
+    }
+    if(p==='/api/account/email/alerts'&&req.method==='PUT')return json(res,200,setLeadAlerts(db,user,(await body(req,1024)).enabled));
     if(p==='/api/account/settings'&&req.method==='GET')return json(res,200,accountProfile(db,user));
     if(p==='/api/account/settings'&&req.method==='PUT'){
       rate('account-settings:'+user,12);
@@ -518,7 +542,7 @@ async function handler(req,res){
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/settings','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/site-search','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/settings','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/site-search','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/recover','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));
@@ -572,7 +596,9 @@ function startRankWorker(){
  timer.unref();
  return ()=>clearInterval(timer);
 }
-const stopRankWorker=startRankWorker();
-const stopInspectionWorker=startInspectionWorker(store);
+const workersDisabled=process.env.SITOCAL_DISABLE_WORKERS==='true';
+const stopMailWorker=workersDisabled?()=>{}:startAccountMailWorker(store);
+const stopRankWorker=workersDisabled?()=>{}:startRankWorker();
+const stopInspectionWorker=workersDisabled?()=>{}:startInspectionWorker(store);
 const server=http.createServer(handler);server.requestTimeout=120000;server.headersTimeout=15000;server.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Sitocal local alpha: http://localhost:${port}`));
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopInspectionWorker();stopRankWorker();server.close(()=>{db.close();process.exit(0);});});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopInspectionWorker();stopRankWorker();stopMailWorker();server.close(()=>{db.close();process.exit(0);});});

@@ -13,7 +13,7 @@ export function pageHref(name,{baseDomain='',hostname='',signedIn=false}={},quer
  if(name==='serpum'||name.startsWith('serpum/'))return production?'https://serp.'+baseDomain+'/'+name+query:'/'+name+query;
  if(['serp','serp-landing'].includes(name))return production?'https://serp.'+baseDomain+'/'+query:'/serp'+query;
  const canonical=canonicalPagePath(name);
- const sub=canonical==='editor-settings'?'editor':['editor','wp'].includes(canonical)?canonical:['app','settings','create-website','my-websites','generations','deployments','form-leads','call-earnings','call-intelligence','serp-checker','site-search','support-tickets','whats-new','publish','integrations','domains','jobs','login','register','developer','indexing','billing','account'].includes(canonical)||['developer','indexing'].includes(name)||canonical==='app'||signedIn&&Object.hasOwn(toolWorkspaces,canonical)?'app':'';
+ const sub=canonical==='editor-settings'?'editor':['editor','wp'].includes(canonical)?canonical:['app','settings','create-website','my-websites','generations','deployments','form-leads','call-earnings','call-intelligence','serp-checker','site-search','support-tickets','whats-new','publish','integrations','domains','jobs','login','register','recover','developer','indexing','billing','account'].includes(canonical)||['developer','indexing'].includes(name)||canonical==='app'||signedIn&&Object.hasOwn(toolWorkspaces,canonical)?'app':'';
  const path=['app','editor','wp','landing'].includes(canonical)?'/':'/'+canonical;
  return production?'https://'+(sub?sub+'.':'')+baseDomain+path+query:(canonical==='landing'?'/':'/'+canonical)+query;
 }
@@ -21,6 +21,7 @@ export function entryRedirect({baseDomain='',hostname='',path,search='',signedIn
  const context={baseDomain,hostname,signedIn},production=Boolean(baseDomain&&(hostname===baseDomain||hostname.endsWith('.'+baseDomain)));
  const params=new URLSearchParams(search);
  if(path==='/login'&&params.get('signup')==='1'){params.delete('signup');return {status:302,location:pageHref('register',context,params.size?'?'+params:'')};}
+ if(path==='/recover'&&production){const target=pageHref('recover',context,search);if(target!=='https://'+hostname+path+search)return {status:302,location:target};}
  if(path==='/register'||path==='/login'){
   if(signedIn)return {status:302,location:pageHref(safeEntryDestination(params.get('returnTo')),context)};
   const target=pageHref(path.slice(1),context,search);if(production&&target!=='https://'+hostname+path+search)return {status:301,location:target};

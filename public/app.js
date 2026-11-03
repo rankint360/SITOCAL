@@ -452,11 +452,27 @@ async function serpChecker(){
   <section class="panel"><h2>Recent checks</h2>${observations.slice(0,10).map(row=>`<details class="activity-item"><summary>${esc(row.config.keyword)} · ${esc(row.config.device)} · ${date(row.created)}</summary>${checkerResults(row.data)}</details>`).join('')||'<p>No checks yet.</p>'}</section>`,'serp-checker');
 }
 
+function accountRecovery(){
+ const token=new URLSearchParams(location.hash.slice(1)).get('token')||'';
+ document.title='Account recovery — SITOCAL';
+ root.innerHTML=`<main class="content wp-public"><section class="panel"><h1>${token?'Choose a new password':'Recover your account'}</h1>
+ ${token?`<form id="recovery-confirm"><input type="hidden" name="token" value="${esc(token)}"><label class="field">New password<input name="password" type="password" minlength="12" maxlength="200" autocomplete="new-password" required></label><button class="btn primary" type="submit">Reset password</button></form>`:`<form id="recovery-request"><p>Use the email address you verified in Settings.</p><label class="field">Email<input name="email" type="email" maxlength="200" autocomplete="email" required></label><button class="btn primary" type="submit">Request recovery link</button></form>`}
+ <p id="recovery-result" role="status"></p><a class="text-link" href="${href('login')}">Back to sign in</a></section></main>`;
+}
+function accountEmailPanel(mail){
+ if(!mail)return '';
+ const verify=new URLSearchParams((location.hash||'').slice(1)).get('verify');
+ return `<section class="panel"><h2>Email, recovery and lead alerts</h2><p>${mail.verified?'Email verified for account recovery.':'Verify your account email to enable password recovery.'} ${mail.available?'':'Transactional email is awaiting platform setup.'}</p>
+ <div class="row">${!mail.verified&&mail.available?button('Send verification link','verify-account-email','small'):''}${verify&&/^[a-f0-9]{64}$/.test(verify)?`<button type="button" class="btn primary" data-action="confirm-account-email" data-token="${verify}">Confirm this email</button>`:''}</div>
+ ${mail.verified?`<form id="lead-email-alerts"><label class="mk-consent"><input name="enabled" type="checkbox" ${mail.leadAlerts?'checked':''}> Email me when new enquiries arrive</label><p class="hint">Alerts link to the private inbox and omit the visitor’s details. Up to one alert every 15 minutes.</p><button class="btn small" type="submit">Save alert preference</button></form>`:''}
+ ${mail.history.length?`<details><summary>Email request history</summary><ul>${mail.history.map(item=>`<li>${esc(item.kind)} · ${esc(item.state)} · ${date(item.created)}</li>`).join('')}</ul><p class="hint">Accepted means the email provider accepted the request.</p></details>`:''}</section>`;
+}
+
 function applyAccountAppearance(theme){
  if(theme&&typeof CustomEvent==='function')document.dispatchEvent(new CustomEvent('sitocal-account-theme',{detail:theme}));
 }
 async function settingsScreen(){
- const [profile,billing,rewards,keys]=await Promise.all([api('/api/account/settings'),api('/api/billing').catch(()=>null),api('/api/rewards').catch(()=>null),api('/api/developer/keys').catch(()=>null)]);
+ const [profile,billing,rewards,keys,mail]=await Promise.all([api('/api/account/settings'),api('/api/billing').catch(()=>null),api('/api/rewards').catch(()=>null),api('/api/developer/keys').catch(()=>null),api('/api/account/email').catch(()=>null)]);
  const profileUrl=profile.public&&profile.handle?href('landing')+'people/'+encodeURIComponent(profile.handle):'';
  const referral=new URLSearchParams(location.search).get('ref');
  let incoming=referral||'';
@@ -482,7 +498,7 @@ async function settingsScreen(){
   <div class="grid3">${providers.map(key=>`<article class="panel"><h3>${providerMeta[key][1]}</h3><p>${esc(connectorState(key))}</p><div class="row"><button type="button" class="btn small" data-configure="${key}">${connections.includes(key)?'Replace':'Configure'}</button>${connections.includes(key)?`<button type="button" class="btn small" data-connector-verify="${key}">Check connection</button>`:''}</div></article>`).join('')}</div>
   <p>Google Search Console: ${connections.includes('google')?'Connected':'Setup required'} · ${keys?keys.keys.filter(key=>!key.revoked&&key.expires>Date.now()).length+' active API/MCP keys':'API/MCP access is managed separately'}</p><div class="row">${link('integrations','All integrations')}${link('developer','Manage API/MCP keys')}${link('editor-settings','Editor defaults')}${link('serp-checker','SERP Checker')}</div></section>
   <section class="panel" id="settings-plan"><h2>Plan & provider usage</h2>${billing?`<p><strong>${esc(billing.capacity.plan)}</strong> · ${billing.capacity.used} of ${billing.capacity.limit} websites used</p>`:''}<p>Billing shows SITOCAL plan and payment options. AI usage is billed by the connected provider or governed by the platform connection’s request allowance.</p><div class="row">${link('billing','Manage plan & payments')}${link('jobs','View provider activity')}</div></section>
-  <section class="panel" id="settings-security"><h2>Security & account closure</h2><p>Manage your password and linked sign-in providers. Request account closure through Support so the team can review billing and data removal with you.</p><div class="row">${link('account','Account & sign-in')}<a class="btn small" href="${href('support-tickets','?topic=account-closure')}">Request account closure</a></div></section>`,'settings');
+  <section class="panel" id="settings-security"><h2>Security & account closure</h2><p>Manage your password and linked sign-in providers. Request account closure through Support so the team can review billing and data removal with you.</p><div class="row">${link('account','Account & sign-in')}<a class="btn small" href="${href('support-tickets','?topic=account-closure')}">Request account closure</a></div></section>`+accountEmailPanel(mail),'settings');
 }
 
 const defaultEditorPrefs={showGuide:true,saveOnPreview:false,confirmRemove:true,showInsert:true,aiProvider:'',host:'',source:''};
@@ -532,6 +548,20 @@ if(form.id==='call-record'){await api('/api/workspace/calls',{method:'POST',body
 if(form.id==='create-site'){const r=await api('/api/sites',{method:'POST',body:b});location.href=href('editor','?site='+r.id);}
 if(form.id==='connector-action-form'){const el=document.getElementById('connector-result');el.innerHTML=loading('Requesting provider report…');try{const r=await api('/api/connectors/'+form.dataset.provider+'/execute',{method:'POST',body:{...b,reviewed:b.reviewed==='on'}});el.innerHTML='<pre class="result">'+esc(JSON.stringify(r,null,2))+'</pre>';}catch(error){el.textContent=error.message;}}
 if(form.id==='lovable-handoff-form'){const url='https://lovable.dev/#prompt='+encodeURIComponent(b.prompt);document.getElementById('lovable-handoff-result').innerHTML='<a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">Review prompt in Lovable ↗</a>';}
+if(form.id==='recovery-request'){
+ await api('/api/auth/recovery/request',{method:'POST',body:b});
+ document.getElementById('recovery-result').textContent='If this account has a verified address and email delivery is available, a recovery link will arrive shortly.';
+ form.reset();
+}
+if(form.id==='recovery-confirm'){
+ await api('/api/auth/recovery/confirm',{method:'POST',body:b});
+ history.replaceState(null,'',location.pathname);
+ location.href=href('login');
+}
+if(form.id==='lead-email-alerts'){
+ await api('/api/account/email/alerts',{method:'PUT',body:{enabled:b.enabled==='on'}});
+ await settingsScreen();notify('Lead alert preference saved.');
+}
 if(form.id==='account-settings-form'){
   const input={name:b.name,handle:b.handle,website:b.website,x:b.x,github:b.github,linkedin:b.linkedin,theme:b.theme,public:b.public==='on',removeAvatar:b.removeAvatar==='on'};
   if(b.avatar?.size){
@@ -610,7 +640,9 @@ case'site-rank-check':case'site-rank-remove':{
  finally{el.disabled=false;}
  break;
 }
-case'editor-media':await openMediaLibrary();break;case'use-media':{const section=site.data.pages[pageIndex].sections[activeSection];section.image=el.dataset.image;section.alt='';dirty=true;modal.close();await editor();break;}case'delete-media':if(confirm('Delete this unused image? Older revisions that reference it will lose the image.')){await api('/api/sites/'+site.id+'/media/'+el.dataset.image,{method:'DELETE'});modal.close();await openMediaLibrary();}break;case'add-page':addEditorPage();break;case'editor-audit':editorAudit();break;case'check-deployment':{el.disabled=true;try{const result=await api('/api/sites/'+el.dataset.site+'/deployment-status',{method:'POST',body:{jobId:el.dataset.job}});await workspaceHistory('deployments');notify('Provider status: '+result.state);}finally{el.disabled=false;}break;}case'remove-phrase':if(confirm('Remove this customer phrase?')){await api('/api/workspace/call-phrases',{method:'DELETE',body:{id:el.dataset.phrase}});await callIntelligence();}break;case'reset-editor-prefs':editorPrefs=await api('/api/editor/preferences',{method:'PUT',body:defaultEditorPrefs});editorSettings();notify('Editor defaults restored.');break;case'new-site':newSite();break;case'signup':location.href=href('register',location.search);break;case'signin':location.href=href('login',location.search);break;case'logout':await api('/api/auth/logout',{method:'POST',body:{}});location.href=href('landing');break;case'apply-edit':captureEdit();if(editorPrefs.saveOnPreview&&dirty)await save();await refreshFrame();break;case'save-site':el.disabled=true;try{await save();}finally{el.disabled=false;}break;
+case'editor-media':await openMediaLibrary();break;case'use-media':{const section=site.data.pages[pageIndex].sections[activeSection];section.image=el.dataset.image;section.alt='';dirty=true;modal.close();await editor();break;}case'delete-media':if(confirm('Delete this unused image? Older revisions that reference it will lose the image.')){await api('/api/sites/'+site.id+'/media/'+el.dataset.image,{method:'DELETE'});modal.close();await openMediaLibrary();}break;case'add-page':addEditorPage();break;case'editor-audit':editorAudit();break;case'verify-account-email':{el.disabled=true;try{await api('/api/account/email/verify',{method:'POST',body:{}});await settingsScreen();notify('Verification email queued. Open the link while signed in.');}finally{el.disabled=false;}break;}
+case'confirm-account-email':{el.disabled=true;try{await api('/api/account/email/confirm',{method:'POST',body:{token:el.dataset.token}});history.replaceState(null,'',location.pathname+location.search);await settingsScreen();notify('Email verified.');}finally{el.disabled=false;}break;}
+case'check-deployment':{el.disabled=true;try{const result=await api('/api/sites/'+el.dataset.site+'/deployment-status',{method:'POST',body:{jobId:el.dataset.job}});await workspaceHistory('deployments');notify('Provider status: '+result.state);}finally{el.disabled=false;}break;}case'remove-phrase':if(confirm('Remove this customer phrase?')){await api('/api/workspace/call-phrases',{method:'DELETE',body:{id:el.dataset.phrase}});await callIntelligence();}break;case'reset-editor-prefs':editorPrefs=await api('/api/editor/preferences',{method:'PUT',body:defaultEditorPrefs});editorSettings();notify('Editor defaults restored.');break;case'new-site':newSite();break;case'signup':location.href=href('register',location.search);break;case'signin':location.href=href('login',location.search);break;case'logout':await api('/api/auth/logout',{method:'POST',body:{}});location.href=href('landing');break;case'apply-edit':captureEdit();if(editorPrefs.saveOnPreview&&dirty)await save();await refreshFrame();break;case'save-site':el.disabled=true;try{await save();}finally{el.disabled=false;}break;
 case'insert-section':case'add-section':{captureEdit();const sections=site.data.pages[pageIndex].sections;const index=el.dataset.action==='insert-section'?activeSection+1:sections.length;sections.splice(index,0,{heading:'A new section.',body:'Tell customers something useful about your business.',cta:''});activeSection=index;dirty=true;editor();break;}
 case'remove-section':if(site.data.pages[pageIndex].sections.length<2)throw Error('Keep at least one section.');if(editorPrefs.confirmRemove&&!confirm('Remove this section from the draft?'))break;captureEdit();dirty=true;site.data.pages[pageIndex].sections.splice(activeSection,1);activeSection=0;editor();break;
 case'section-up':case'section-down':{captureEdit();const arr=site.data.pages[pageIndex].sections,next=activeSection+(el.dataset.action==='section-up'?-1:1);if(next>=0&&next<arr.length){[arr[next],arr[activeSection]]=[arr[activeSection],arr[next]];activeSection=next;editor();}break;}
@@ -634,6 +666,7 @@ async function init(){
   session=await api('/api/session');
   applyAccountAppearance(session.theme);
   if(route==='settings'&&!session.user){const ref=new URLSearchParams(location.search).get('ref');if(/^[a-zA-Z0-9_-]{3,40}$/.test(ref||''))try{sessionStorage.setItem('sitocal-referral',ref);}catch{}}
+  if(route==='recover'){accountRecovery();return;}
   if(route==='register'||route==='login'){
    if(session.user){location.replace(href(route==='login'?loginDestination():'app'));return;}
    auth(route==='register');return;
