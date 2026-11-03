@@ -43,6 +43,8 @@ function legacyConnection(user,provider){const row=db.prepare('SELECT secret FRO
 function connection(user,provider){return resolveConnection(store,user,provider);}
 const leadStatuses=['new','contacted','forwarded','archived','spam'];
 db.exec(`
+CREATE TABLE IF NOT EXISTS website_media(id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,name TEXT NOT NULL,media TEXT NOT NULL,bytes BLOB NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS website_media_site ON website_media(site_id);
 CREATE TABLE IF NOT EXISTS website_search_property(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, property TEXT NOT NULL, origin TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS website_rank_tracking(id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,keyword TEXT NOT NULL,location INTEGER NOT NULL,device TEXT NOT NULL,daily INTEGER NOT NULL,next_run INTEGER NOT NULL,last_status TEXT NOT NULL,UNIQUE(site_id,keyword,location,device));
 CREATE INDEX IF NOT EXISTS rank_due ON website_rank_tracking(daily,next_run);
@@ -67,6 +69,34 @@ function editorPreferences(user){
  return row?JSON.parse(row.settings):{showGuide:true,saveOnPreview:false,confirmRemove:true,showInsert:true,aiProvider:'',host:'',source:''};
 }
 function contactFormUrl(siteId){return publicOrigin+'/website-contact/'+encodeURIComponent(siteId);}
+function validWebsiteImage(media,bytes){
+ return bytes.length<=262144&&(media==='image/png'?bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')):media==='image/jpeg'?bytes.subarray(0,3).equals(Buffer.from('ffd8ff','hex')):media==='image/webp'&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP');
+}
+function importWebsiteBundle(user,manifest,files){
+ const remapped=new Map();
+ for(const page of manifest.pages)for(const section of page.sections){
+  if(!section.image)continue;
+  const old=section.image;
+  if(!remapped.has(old)&&remapped.size<8){
+   for(const [extension,media] of [['png','image/png'],['jpg','image/jpeg'],['webp','image/webp']]){
+    const bytes=files['media/'+old+'.'+extension];
+    if(bytes&&validWebsiteImage(media,bytes)){remapped.set(old,{id:id(),media,bytes,extension});break;}
+   }
+  }
+  const asset=remapped.get(old);
+  if(asset)section.image=asset.id;
+  else{delete section.image;delete section.alt;}
+ }
+ return atomic(db,()=>{
+  const site=saveSite(user,manifest);
+  const insert=db.prepare('INSERT INTO website_media VALUES(?,?,?,?,?,?)');
+  for(const asset of remapped.values())insert.run(asset.id,site.id,'Imported image.'+asset.extension,asset.media,asset.bytes,site.created);
+  return site;
+ });
+}
+function websiteMedia(siteId){
+ return db.prepare('SELECT id,media,bytes FROM website_media WHERE site_id=?').all(siteId).map(row=>({...row,bytes:Buffer.from(row.bytes)}));
+}
 function ownedSite(user,siteId){const row=db.prepare('SELECT * FROM sites WHERE id=? AND user_id=?').get(siteId,user);if(!row)throw new ProviderError('Project not found',404);return {...row,data:JSON.parse(row.data)};}
 function saveSite(user,data,siteId){assertAccess(db,user,siteId?'editor':'builder');const now=new Date().toISOString();const v=validateSite(data);if(siteId){ownedSite(user,siteId);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);db.prepare('UPDATE sites SET data=?,updated=? WHERE id=? AND user_id=?').run(JSON.stringify(v),now,siteId,user);}else{checkSiteCapacity(db,user);siteId=id();db.prepare('INSERT INTO sites VALUES(?,?,?,?,?)').run(siteId,user,JSON.stringify(v),now,now);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);}return ownedSite(user,siteId);}
 async function body(req,maxBytes=17*1024*1024){const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>maxBytes)throw new ProviderError('Request too large',413);chunks.push(c);}const b=Buffer.concat(chunks);if(req.headers['content-type']?.startsWith('application/zip'))return b;try{return JSON.parse(b.toString()||'{}');}catch{throw new ProviderError('Invalid JSON',400);}}
@@ -330,7 +360,7 @@ async function handler(req,res){
     if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const provider=b.aiProvider||'openai';if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);const c=connection(user,provider);const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b,provider);return {...saveSite(user,r.site),usage:r.usage,model:r.model,provider,promptVersion:r.promptVersion};});return json(res,201,generated);}if(b.pages)return json(res,201,saveSite(user,b));return json(res,201,atomic(db,()=>{const site=saveSite(user,draftSite(b));db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(id(),user,site.id,'template-generation','completed','{}',site.created);return site;}));}
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=findManifest(files,validateSite);
-      if(manifest)return json(res,201,saveSite(user,manifest));
+      if(manifest)return json(res,201,importWebsiteBundle(user,manifest,files));
       const html=Object.entries(files).filter(([n])=>/\.html?$/i.test(n));if(!html.length)throw new ProviderError('ZIP has no Sitocal manifest or HTML pages',400);
       // Return source text only; client parses in an inert DOM and extracts editable text.
       return json(res,200,{needsMapping:true,pages:html.slice(0,30).map(([name,data])=>({name,html:data.toString('utf8')})),warning:'Arbitrary HTML import extracts headings and paragraphs. Original layout, scripts, media and styling are not preserved.'});
@@ -338,14 +368,45 @@ async function handler(req,res){
     const siteRoute=p.match(/^\/api\/sites\/([a-f0-9-]+)(?:\/(.*))?$/);
     if(siteRoute){
       const [,siteId,action]=siteRoute,site=ownedSite(user,siteId);
+      if(action==='media'&&req.method==='GET'){
+        assertAccess(db,user,'editor');
+        return json(res,200,{images:db.prepare('SELECT id,name,media,length(bytes) AS size,created FROM website_media WHERE site_id=? ORDER BY rowid DESC').all(siteId)});
+      }
+      if(action==='media'&&req.method==='POST'){
+        assertAccess(db,user,'editor');rate('media:'+user,10);
+        const input=await body(req,360000);
+        const name=String(input.name||'').trim().slice(0,120);
+        const match=typeof input.image==='string'&&input.image.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+        if(!match||!name)throw new ProviderError('Choose a PNG, JPEG or WebP image',400);
+        const media=match[1],bytes=Buffer.from(match[2],'base64');
+        if(!validWebsiteImage(media,bytes))throw new ProviderError('Choose a valid image under 256 KB',400);
+        const asset=id();
+        atomic(db,()=>{
+          if(db.prepare('SELECT count(*) n FROM website_media WHERE site_id=?').get(siteId).n>=8)throw new ProviderError('Each website can store eight images',409);
+          db.prepare('INSERT INTO website_media VALUES(?,?,?,?,?,?)').run(asset,siteId,name,media,bytes,new Date().toISOString());
+        });
+        return json(res,201,{id:asset,name,media});
+      }
+      const mediaMatch=action?.match(/^media\/([a-f0-9-]+)$/);
+      if(mediaMatch&&['GET','DELETE'].includes(req.method)){
+        assertAccess(db,user,'editor');
+        const asset=db.prepare('SELECT * FROM website_media WHERE id=? AND site_id=?').get(mediaMatch[1],siteId);
+        if(!asset)throw new ProviderError('Image not found',404);
+        if(req.method==='DELETE'){
+          if(site.data.pages.some(page=>page.sections.some(section=>section.image===asset.id)))throw new ProviderError('Remove this image from the saved draft before deleting it',409);
+          db.prepare('DELETE FROM website_media WHERE id=? AND site_id=?').run(asset.id,siteId);
+          return json(res,200,{ok:true});
+        }
+        res.writeHead(200,{'Content-Type':asset.media,'Cache-Control':'no-store'});return res.end(asset.bytes);
+      }
       if(!action&&req.method==='GET')return json(res,200,site);
       if(!action&&req.method==='PUT')return json(res,200,saveSite(user,await body(req),siteId));
       if(!action&&req.method==='DELETE'){db.prepare('DELETE FROM sites WHERE id=? AND user_id=?').run(siteId,user);return json(res,200,{ok:true});}
       if(action==='revisions'&&req.method==='GET')return json(res,200,{revisions:db.prepare('SELECT id,created FROM revisions WHERE site_id=? AND user_id=? ORDER BY rowid DESC LIMIT 50').all(siteId,user)});
       if(action==='restore'&&req.method==='POST'){const b=await body(req),r=db.prepare('SELECT data FROM revisions WHERE id=? AND site_id=? AND user_id=?').get(b.revision,siteId,user);if(!r)throw new ProviderError('Revision not found',404);return json(res,200,saveSite(user,JSON.parse(r.data),siteId));}
       if(action==='draft-preview'&&req.method==='POST'){const data=validateSite(await body(req)),key=randomBytes(24).toString('hex');for(const[k,v]of draftPreviews)if(v.expires<Date.now())draftPreviews.delete(k);if(draftPreviews.size>500)draftPreviews.delete(draftPreviews.keys().next().value);draftPreviews.set(key,{user,siteId,data,expires:Date.now()+600000});return json(res,200,{key});}
-      if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1'));}
-      if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
+      if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1',Object.fromEntries(websiteMedia(siteId).map(image=>[image.id,'data:'+image.media+';base64,'+image.bytes.toString('base64')]))));}
+      if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin,websiteMedia(site.id)):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
       if(action==='search'&&req.method==='GET'){
         assertAccess(db,user,'serp');
         const binding=db.prepare('SELECT property,origin FROM website_search_property WHERE site_id=?').get(siteId);
@@ -415,7 +476,7 @@ async function handler(req,res){
         const b=await body(req);if(b.reviewed!==true)throw new ProviderError('Review business facts before publishing',400);
         if(!['','github','gitlab','bitbucket'].includes(b.source||'')||!['','netlify','vercel','cloudflare','render'].includes(b.host||'')||!b.source&&!['netlify','vercel'].includes(b.host))throw new ProviderError('Select a source provider or direct deployment host',400);
         const sourceConfig=b.source?connection(user,b.source):null,hostConfig=b.host?connection(user,b.host):null;
-        return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin),out={};if(b.source)out.source=await pushRepository(b.source,sourceConfig,files);if(b.host){try{out.deployment={...await deploy(b.host,hostConfig,files,site.data.business),provider:b.host};}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
+        return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin,websiteMedia(site.id)),out={};if(b.source)out.source=await pushRepository(b.source,sourceConfig,files);if(b.host){try{out.deployment={...await deploy(b.host,hostConfig,files,site.data.business),provider:b.host};}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
       }
     }
     if(p==='/api/connections'&&req.method==='GET'){const rows=db.prepare('SELECT provider FROM connections WHERE user_id=?').all(user);return json(res,200,{managed:managedProviders(db).filter(p=>!rows.some(r=>r.provider===p)),connections:[...new Set([...rows.map(x=>x.provider),...managedProviders(db)])],checks:db.prepare('SELECT provider,result FROM connector_checks WHERE user_id=?').all(user).map(x=>({provider:x.provider,...JSON.parse(x.result)})),googleConfigured:googleReady()});}

@@ -1,3 +1,7 @@
+# Session 070 — Website media and export portability
+
+2026-11-03. Added a private per-site image library with section placement and alt text. PNG, JPEG and WebP files are bounded, previewed in the sandbox, included in static publishing and ZIP export, and remapped to new asset IDs on ZIP reimport. Deleting an unused asset can affect older revisions. Syntax checks and all 96 tests passed with local fixtures. WordPress media import and external provider verification remain pending.
+
 # Session 069 — Site search tracking and lead follow-up
 
 2026-11-03. Added site-scoped verified Search Console property binding, on-demand and opt-in daily DataForSEO keyword tracking, ranking history, and a handoff to Indexer. Added dashboard enquiry counts, private lead notes, assignment labels and status history. Changing a public site address pauses scheduled checks. Syntax checks and all 96 tests passed. User chose local and fixture verification for now. Real provider calls, delivery notifications and staging launch are pending.
