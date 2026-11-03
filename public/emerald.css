@@ -162,3 +162,13 @@ html[data-palette=glass] :is(.workspace.studio-workspace,.admin-layout){backgrou
 .quick-guide .row{flex-wrap:wrap}
 @media(max-width:580px){.quick-guide{grid-template-columns:1fr}.quick-guide nav{display:flex;overflow:auto}.quick-guide nav button{white-space:nowrap}}
 
+
+/* Sidebar feedback follows the active palette and motion preference. */
+.admin-sidebar nav button{display:flex;align-items:center;gap:10px}
+:is(.studio-sidebar,.studio-mobile-nav,.admin-sidebar) .studio-nav-icon svg{transition:transform .18s ease,color .18s ease}
+:is(.studio-sidebar,.studio-mobile-nav,.admin-sidebar) :is(a,button):is(:hover,:focus-visible) .studio-nav-icon svg{transform:translateY(-2px) rotate(-7deg) scale(1.12);color:#fff}
+.studio-mobile-nav :is(a,button):is(:hover,:focus-visible) .studio-nav-icon svg{color:var(--green)}
+@media(prefers-reduced-motion:reduce){
+ :is(.studio-sidebar,.studio-mobile-nav,.admin-sidebar) .studio-nav-icon svg{transition:none}
+ :is(.studio-sidebar,.studio-mobile-nav,.admin-sidebar) :is(a,button):is(:hover,:focus-visible) .studio-nav-icon svg{transform:none}
+}

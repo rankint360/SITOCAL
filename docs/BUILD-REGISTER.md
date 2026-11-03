@@ -1,3 +1,7 @@
+# Sidebar navigation icons
+
+Added route-specific icons for signed-in desktop, mobile and admin navigation. Hover and keyboard focus animate icons when reduced motion is off. Focused Emerald Studio tests passed locally.
+
 # Market research and website operations
 
 Added saved market estimates, pasted keyword grouping, saved organic SERP comparison and builder prefill. Added image library usage and original previews, HTTPS probe totals and per-site form enquiry totals. Provider keyword/SERP retrieval, video, and cross-channel attribution remain pending. Syntax and focused Emerald Studio tests passed locally.
