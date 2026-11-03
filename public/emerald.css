@@ -115,3 +115,6 @@ html[data-theme=dark] .mk-public .studio-page-hero{background:linear-gradient(12
 .wp-review dd { margin:0; }
 
 .media-thumbnail { width:100%; max-height:140px; object-fit:contain; }
+
+#coverage-tool button[aria-pressed=true] { outline:2px solid currentColor; outline-offset:2px; }
+#coverage-tool .row { flex-wrap:wrap; }

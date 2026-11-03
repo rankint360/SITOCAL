@@ -1,3 +1,7 @@
+# Session 076 — LeadSmart coverage explorer
+
+2026-11-03. Replaced the planned coverage page with an Emerald Studio explorer for city and ZIP, niche, state, overlapping ZIP bundles, saved markets and configurable acquisition estimates. Authorized CSVs are parsed in the browser; payout models are separated. The user will provide the authorized feed URL or schema before live data integration. Syntax checks and all 102 tests passed with fixtures.
+
 # Session 075 — Ringba report import and launch runbook
 
 2026-11-03. Added review-first Ringba Call Details CSV import by tracking number, with replaceable daily aggregate totals stored separately from manual entries. Caller details and raw CSVs are not retained. Added a launch runbook for the draft-to-live-to-lead-to-search workflow and staging acceptance. Syntax checks and all 101 tests passed. User requested local and fixture verification only. Automatic Ringba synchronization, direct DNS provisioning and live provider and WordPress acceptance remain pending.

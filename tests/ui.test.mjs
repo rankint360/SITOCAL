@@ -47,7 +47,7 @@ test('public navigation exposes all niche guides, tools and honest preview state
  for(const [slug,name] of nichePacks){assert(home.includes('href="/niche-packs/'+slug+'"'));const html=await h.render('public:niche-packs/'+slug);assert(html.includes(name));assert(html.includes('Not a preloaded specialist model'));}
  assert(home.includes('data-site-theme'));assert(home.includes('aria-controls="site-menu"'));assert(home.includes('🇬🇧 EN'));assert(home.includes('AJ Digit, LLC. [d/b/a SITOCAL]'));
  const comparison=await h.render('public:why-sitocal');assert(comparison.includes('<table>'));assert(comparison.includes('not a benchmark'));
- const leadsmart=await h.render('public:leadsmart-coverage-intelligence');assert(leadsmart.includes('Not an active coverage engine'));
+ const leadsmart=await h.render('public:leadsmart-coverage-intelligence');assert(leadsmart.includes('coverage-tool'));assert(leadsmart.includes('Import an authorized LeadSmart coverage CSV'));
 });
 
 test('language form retains native public-page translation submission',async()=>{const h=await uiHarness();let prevented=false;await h.dispatchSubmit({target:{id:'site-language-form'},preventDefault(){prevented=true;}});assert.equal(prevented,false);const html=await h.render('landing');assert(html.includes('action="https://translate.google.com/translate"'));assert(html.includes('target="_blank"'));assert(html.includes('name="tl"'));assert(html.includes('name="u"'));});

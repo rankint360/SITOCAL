@@ -1,3 +1,4 @@
+import {initCoverage} from './coverage.js';
 import {canonicalPagePath,workspaceRoute,toolWorkspaces,pageHref,safeEntryDestination} from './page-routes.js';
 import {initSerpum} from './serpum.js';
 import {initAppearance,navSymbol} from './navigation.js';
@@ -753,7 +754,7 @@ async function init(){
    publicPlans=(await api('/api/plans/public')).plans;
   }
   if(route==='landing'){landing();return;}
-  if(publicRoutes.includes(route)&&!Object.hasOwn(toolWorkspaces,rawRoute)){const p=publicPage(route,{href,darkLogo,planCatalog:publicPlans});root.innerHTML=p.html;document.title=p.title+' — Sitocal';initMarketing(root);syncPublicNavigation();initSerpum(root);return;}
+  if(publicRoutes.includes(route)&&!Object.hasOwn(toolWorkspaces,rawRoute)){const p=publicPage(route,{href,darkLogo,planCatalog:publicPlans});root.innerHTML=p.html;document.title=p.title+' — Sitocal';initMarketing(root);syncPublicNavigation();initSerpum(root);initCoverage();return;}
   session=await api('/api/session');
   applyAccountAppearance(session.theme);
   if(route==='settings'&&!session.user){const ref=new URLSearchParams(location.search).get('ref');if(/^[a-zA-Z0-9_-]{3,40}$/.test(ref||''))try{sessionStorage.setItem('sitocal-referral',ref);}catch{}}
