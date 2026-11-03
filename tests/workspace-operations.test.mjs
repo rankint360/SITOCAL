@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join,resolve,sep } from 'node:path';
 import { once } from 'node:events';
 import { request as httpRequest } from 'node:http';
-import { unzip } from '../lib/archive.mjs';
+import { unzip, zip } from '../lib/archive.mjs';
 
 test('website leads and payout records stay isolated and generation history links the saved site',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'sitocal-api-')),origin='http://localhost:4328';
@@ -70,6 +70,28 @@ test('website leads and payout records stay isolated and generation history link
     assert.equal((await call(prefsPath,{method:'PUT',cookie,csrf,body:preferences})).status,200);
     assert.deepEqual(await(await call(prefsPath,{cookie})).json(),preferences);
     assert.deepEqual(await(await call(prefsPath,{cookie:other})).json(),defaults);
+    const publicBuild=await call('/api/wp/build',{method:'POST',body:{format:'combined',site:site.data}});
+    assert.equal(publicBuild.status,200);
+    const bundle=unzip(Buffer.from(await publicBuild.arrayBuffer()));
+    assert(bundle['wordpress.xml'].toString().includes('wp:group'));
+    assert(bundle['elementor/home.json']);
+    const theme=unzip(bundle['sitocal-theme.zip']);
+    assert(theme['sitocal-austin-flow/style.css'].toString().includes('Theme Name: Sitocal Starter'));
+    assert(theme['sitocal-austin-flow/index.php'].toString().includes('the_content()'));
+    assert(bundle['INSTALL.txt']);
+    const basic=await call('/api/wp/build',{method:'POST',cookie,csrf,body:{format:'basic',siteId:site.id}});
+    assert.equal(basic.status,200);
+    const plain=unzip(Buffer.from(await basic.arrayBuffer()));
+    assert(!plain['wordpress.xml'].toString().includes('wp:group'));
+    assert.equal((await call('/api/wp/build',{method:'POST',body:{format:'basic',siteId:site.id}})).status,401);
+    assert.equal((await call('/api/wp/build',{method:'POST',cookie:other,csrf:otherAuth.csrf,body:{format:'basic',siteId:site.id}})).status,404);
+    assert.equal((await call('/api/wp/build',{method:'POST',body:{format:'invalid',site:site.data}})).status,400);
+    const upload=zip({'nested/about.html':'<h1>About</h1>','nested/index.html':'<h1>Home</h1>','ignored.php':'<?php exit; ?>'});
+    const inspected=await fetch(origin+'/api/wp/inspect',{method:'POST',headers:{Origin:origin,'Content-Type':'application/zip'},body:upload});
+    assert.equal(inspected.status,200);
+    const inspection=await inspected.json();
+    assert.deepEqual(inspection.pages.map(page=>page.name),['nested/index.html','nested/about.html']);
+    assert.equal((await fetch(origin+'/api/wp/inspect',{method:'POST',headers:{Origin:'https://foreign.example','Content-Type':'application/zip'},body:upload})).status,403);
     const history=await(await call('/api/jobs',{cookie})).json();
     assert(history.jobs.some(job=>job.kind==='template-generation'&&job.site_id===site.id));
     for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade','/support-tickets','/whats-new','/serp-checker','/call-intelligence','/editor-settings'])assert.equal((await call(path,{cookie})).status,200,path);

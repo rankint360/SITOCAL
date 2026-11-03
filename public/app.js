@@ -106,7 +106,126 @@ async function builder(){
 async function editor(){if(!sites.length)return shell(header('A little more you.','Create or import a website to start editing.')+`<div class="panel empty"><h2>Your editor is ready.</h2><p>Sitocal websites retain editable page sections and revision history.</p><div class="row" style="justify-content:center">${button('Create a website','new-site','primary')}<label class="btn import-label">Import ZIP<input type="file" accept=".zip" data-import hidden></label></div></div>`,'editor');site=selected();const p=site.data.pages[pageIndex]||site.data.pages[0];pageIndex=site.data.pages.indexOf(p);activeSection=Math.min(activeSection,p.sections.length-1);const s=p.sections[activeSection];shell(header('Make every word your own.','Click any heading, paragraph or button in the preview to edit it.',`<div class="row"><a class="btn" href="/api/sites/${site.id}/export">Download ZIP ↓</a>${button('Save revision','save-site','primary')}</div>`)+(editorPrefs.showGuide?`<details class="panel"><summary>Quick-start guide</summary><p>Choose a page, edit a section, apply to preview and save a revision. <a href="${href('editor-settings')}">Editor settings</a></p></details>`:'')+`<div class="editor-toolbar"><div class="row">${sitePicker('editor-project')}<label class="field">Page<select id="editor-page">${site.data.pages.map((p,i)=>`<option value="${i}" ${i===pageIndex?'selected':''}>${esc(p.title)}</option>`).join('')}</select></label></div><div class="segmented"><button data-device="desktop" class="active">Desktop</button><button data-device="mobile">Mobile</button></div></div><div class="split-work studio-editor"><nav class="studio-page-tree panel" aria-label="Website pages"><span class="eyebrow muted">YOUR WEBSITE</span><h3>Pages</h3>${site.data.pages.map((item,i)=>`<button type="button" data-editor-page="${i}" class="${i===pageIndex?'active':''}" ${i===pageIndex?'aria-current="page"':''}><span aria-hidden="true">▤</span>${esc(item.title)}</button>`).join('')}<p class="hint">Select a page, then click supported content in the preview.</p></nav><section class="panel editor-panel"><h3>Page content</h3><label class="field">Section<select id="editor-section">${p.sections.map((s,i)=>`<option value="${i}" ${i===activeSection?'selected':''}>${i+1}. ${esc(s.heading.slice(0,35))}</option>`).join('')}</select></label><label class="field">Heading<input id="edit-heading" maxlength="200" value="${esc(s.heading)}"></label><label class="field">Body<textarea id="edit-body" maxlength="4000">${esc(s.body)}</textarea></label><label class="field">Button label<input id="edit-cta" maxlength="80" value="${esc(s.cta)}"></label>${button('Apply to preview','apply-edit','small primary')}<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><label class="field">SEO title<input id="edit-title" maxlength="150" value="${esc(p.title)}"></label><label class="field">Meta description<textarea id="edit-description" maxlength="320" style="min-height:80px">${esc(p.description)}</textarea></label><div class="row">${button('+ Add section','add-section','small')}${editorPrefs.showInsert?button('Insert after selection','insert-section','small'):''}${button('↑','section-up','small')}${button('↓','section-down','small')}${button('Remove','remove-section','small danger')}</div><div class="row" style="margin-top:15px">${button('Revision history','revisions','small ghost')}<span id="save-state" class="hint">${dirty?'Unsaved changes':'All changes saved'}</span></div></section><div class="editor-frame-wrap" id="frame-wrap"><iframe id="site-frame" title="Editable website preview" sandbox="allow-scripts" src="/api/sites/${site.id}/preview?page=${encodeURIComponent(p.slug)}&edit=1"></iframe></div></div>`,'editor');if(dirty)refreshFrame();}
 function captureEdit(){if(!site||!document.getElementById('edit-heading'))return;const p=site.data.pages[pageIndex],section=p.sections[activeSection];let changed=false;for(const key of ['heading','body','cta']){const value=document.getElementById('edit-'+key).value;if(section[key]!==value)changed=true;section[key]=value;}for(const key of ['title','description']){const value=document.getElementById('edit-'+key).value;if(p[key]!==value)changed=true;p[key]=value;}if(changed)dirty=true;document.getElementById('save-state').textContent=dirty?'Unsaved changes':'All changes saved';}
 async function refreshFrame(){const frame=document.getElementById('site-frame');if(!frame||!site)return;try{const r=await api('/api/sites/'+site.id+'/draft-preview',{method:'POST',body:site.data});frame.src='/api/sites/'+site.id+'/preview?page='+encodeURIComponent(site.data.pages[pageIndex].slug)+'&edit=1&draft='+r.key;}catch(e){notify(e.message);}}
-function converter(){shell(header('Your site. A new home.','Turn your Sitocal website into editable content for WordPress.')+`<ol class="studio-converter-guide" aria-label="Conversion workflow"><li><span>01</span><div><strong>Choose your website</strong><small>Use a saved project or import a ZIP.</small></div></li><li><span>02</span><div><strong>Select your format</strong><small>Match the page builder you use.</small></div></li><li><span>03</span><div><strong>Download & review</strong><small>Import into WordPress and check the result.</small></div></li></ol><section class="upload-zone"><div class="eyebrow muted">BRING YOUR WEBSITE</div><h2 style="font:29px Georgia,serif;margin:14px 0">A ZIP file. More possibilities.</h2><p>Upload a Sitocal ZIP to preserve your page structure. Other HTML ZIPs import text into a new editable layout; original styling and scripts are not retained.</p><label class="btn primary import-label">Choose website ZIP ↑<input type="file" accept=".zip" data-import hidden></label></section>${sites.length?`<section class="panel">${sitePicker('convert-project')}<div class="hint" style="margin-bottom:22px">Export scope: headings, body text, buttons and section layout. Not a pixel-perfect HTML-to-builder conversion. Validate imports on your WordPress installation.</div>${[['E','Elementor','Native editable widgets · Individual page JSON templates','elementor'],['W','WordPress / Gutenberg','Native blocks · Paste into the page code editor','gutenberg'],['D','Divi 4 · Beta','WordPress XML + editable text shortcodes · Divi 5 native layouts pending','divi']].map(([symbol,title,copy,format])=>`<div class="converter-option"><span class="convert-letter">${symbol}</span><div><h3>${title}</h3><p>${copy}</p></div>${`<button class="btn small" data-convert="${format}">Download ↓</button>`}</div>`).join('')}<div class="hint">Elementor: unzip → Templates → Saved Templates → Import each JSON. Gutenberg: create a page → Code editor → paste block markup.</div></section>`:'<div class="panel empty"><h2>Start with your first website.</h2><p>Create a Sitocal project or import a ZIP above.</p>'+button('Create a website','new-site','primary')+'</div>'}`,'wp');}
+const wpFormats=[
+ ['basic','Basic WordPress','A starter theme and standard draft pages.'],
+ ['gutenberg','Gutenberg','Draft pages plus individual native block files.'],
+ ['combined','Combined','Starter theme, Gutenberg drafts, and individual Elementor templates.'],
+ ['elementor','Elementor','Individual editable JSON templates for Elementor.'],
+ ['divi','Divi 4 beta','Draft pages with Divi 4 shortcodes.']
+];
+function wpTextPages(entries){
+ const slugs=new Set(['home']);
+ return entries.map(({name,html},index)=>{
+  const template=document.createElement('template');template.innerHTML=html;
+  const title=template.content.querySelector('title')?.textContent.trim();
+  template.content.querySelectorAll('script,style,noscript,template,iframe,svg,object,embed,form,nav,header,footer').forEach(node=>node.remove());
+  const content=template.content.querySelector('main')||template.content;
+  const sections=[];
+  for(const node of content.querySelectorAll('h1,h2,h3,p,li')){
+   const text=node.textContent.trim();if(!text)continue;
+   if(/^H[123]$/.test(node.tagName)){
+    if(sections.length===40)break;
+    sections.push({heading:text.slice(0,200),body:'',cta:''});
+   }else{
+    if(!sections.length)sections.push({heading:(title||'Overview').slice(0,200),body:'',cta:''});
+    const section=sections.at(-1);
+    section.body=(section.body+(section.body?'\n':'')+text).slice(0,4000);
+   }
+  }
+  if(!sections.length){
+   const text=content.textContent.trim();
+   if(!text)throw Error('An HTML page has no readable text. Remove empty pages and try again.');
+   sections.push({heading:(title||'Overview').slice(0,200),body:text.slice(0,4000),cta:''});
+  }
+  let slug='home';
+  if(index){
+   const stem=name.split('/').at(-1).replace(/\.html?$/i,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55).replace(/-$/,'')||'page';
+   slug=stem;
+   for(let suffix=2;slugs.has(slug);suffix++)slug=stem+'-'+suffix;
+   slugs.add(slug);
+  }
+  return {slug,title:(title||sections[0].heading).slice(0,150),description:'',sections};
+ });
+}
+function converter(){
+ let step=0,format='combined',siteId='',source=null,filename='',busy=false,error='',download='',downloadName='';
+ const labels=['Mode','Source','Build','Install'];
+ function draw(){
+  const chosen=wpFormats.find(item=>item[0]===format);
+  const selectedSite=sites.find(item=>item.id===siteId);
+  const heading=['Choose output mode','Choose your source','Review and build','Download and install'][step];
+  const instructions={
+   basic:'Unzip this package. Upload sitocal-theme.zip under Appearance → Themes → Add New → Upload Theme. Activate it on a staging site and import wordpress.xml through Tools → Import.',
+   combined:'Unzip this package. Upload sitocal-theme.zip in Appearance → Themes. Import wordpress.xml through Tools → Import for block drafts. To use Elementor, import the individual JSON templates in the elementor folder.',
+   gutenberg:'Unzip the package and import wordpress.xml through Tools → Import → WordPress. Alternatively, paste a page’s HTML file into the WordPress code editor.',
+   elementor:'Unzip the package, then import each page JSON through Elementor’s Saved Templates and insert it on the matching page.',
+   divi:'Unzip and import wordpress.xml through Tools → Import → WordPress with Divi 4 active. Review the draft pages in the Divi 4 builder.'
+  };
+  const content=[
+   ()=>`<fieldset class="wp-mode-grid"><legend>Package format</legend>${wpFormats.map(([value,title,copy])=>`<label class="wp-mode"><input type="radio" name="wp-mode" value="${value}" ${value===format?'checked':''}><span><strong>${title}</strong><small>${copy}</small></span></label>`).join('')}</fieldset>`,
+   ()=>`${sites.length?`<label class="field">Use a saved website<select id="wp-site" ${busy?'disabled':''}><option value="">Upload a ZIP instead</option>${sites.map(item=>`<option value="${esc(item.id)}" ${siteId===item.id?'selected':''}>${esc(item.data.business)}</option>`).join('')}</select></label>`:''}<section class="upload-zone wp-drop" id="wp-drop"><p><strong>${filename?esc(filename):'Drop a static website ZIP here'}</strong></p><label class="btn import-label">Choose ZIP<input type="file" id="wp-upload" accept=".zip,application/zip" ${busy?'disabled':''}></label><p>Up to 12 MB. HTML-only archives import editable text, up to 30 pages.</p></section>
+   ${source?.pages&&!source.site?`<div class="grid2"><label class="field">Business name<input id="wp-business" maxlength="120" value="${esc(source.business||'')}" required></label><label class="field">Service area<input id="wp-city" maxlength="120" value="${esc(source.city||'')}" required></label></div>`:''}`,
+   ()=>`<dl class="wp-review"><dt>Format</dt><dd>${chosen[1]}</dd><dt>Source</dt><dd>${esc(selectedSite?.data.business||filename)}</dd><dt>Pages</dt><dd>${selectedSite?.data.pages.length??source?.site?.pages.length??source?.pages?.length??0}</dd></dl><p>The package uses a fresh layout and editable content. Review links, media, forms and styling on a staging site.</p>`,
+   ()=>`<p>${instructions[format]}</p><p>Review draft pages, navigation and contact links before publishing. See the instructions included in the ZIP.</p><a class="btn primary" href="${esc(download)}" download="${esc(downloadName)}">Download ${chosen[1]} package</a>`
+  ];
+  const html=header('Convert static sites to WordPress','Build a WordPress package from a ZIP or a saved Sitocal website.')+
+   `<section class="panel wp-wizard"><ol class="builder-progress" aria-label="Conversion progress">${labels.map((label,index)=>`<li ${index===step?'aria-current="step"':''}>${label}</li>`).join('')}</ol>
+   <h2>${heading}</h2>${content[step]()}<p role="status" class="hint">${busy?'Working…':esc(error)}</p>
+   <div class="row between"><button class="btn" id="wp-back" ${step===0||busy?'disabled':''}>Back</button><span>Step ${step+1} of 4</span><button class="btn primary" id="wp-next" ${busy?'disabled':''}>${['Next','Review package','Build package','Convert another site'][step]}</button></div></section>
+   <p class="hint">Uploaded conversion files are processed in memory. Use the editor if you want to save an imported website.</p>`;
+  if(session.user)shell(html,'wp');
+  else root.innerHTML=`<header class="wp-public-header"><a href="${href('landing')}"><img src="/assets/brand/logo.svg" alt="Sitocal" width="130"></a><a class="btn small" href="${href('login','?returnTo=%2Fwp')}">Sign in for saved websites</a></header><main class="content wp-public">${html}</main>`;
+  document.getElementById('wp-back').onclick=()=>{if(busy)return;error='';step--;draw();};
+  document.getElementById('wp-next').onclick=advance;
+  if(step===0)for(const radio of document.querySelectorAll?.('input[name="wp-mode"]')||[])radio.onchange=()=>{format=radio.value;};
+  if(step===1){
+   const select=document.getElementById('wp-site'),upload=document.getElementById('wp-upload'),drop=document.getElementById('wp-drop');
+   if(select)select.onchange=()=>{siteId=select.value;if(siteId){source=null;filename='';}error='';draw();};
+   upload.onchange=()=>uploadZip(upload.files[0]);
+   drop.ondragover=event=>event.preventDefault();
+   drop.ondrop=event=>{event.preventDefault();uploadZip(event.dataTransfer.files[0]);};
+  }
+ }
+ async function uploadZip(file){
+  if(!file||busy)return;
+  if(!/\.zip$/i.test(file.name)||file.size>12*1024*1024){error='Choose a ZIP under 12 MB.';draw();return;}
+  busy=true;error='';source=null;filename='';siteId='';draw();
+  try{
+   const result=await api('/api/wp/inspect',{method:'POST',body:await file.arrayBuffer()});
+   source=result.site?{site:result.site}:{pages:wpTextPages(result.pages)};
+   filename=file.name;siteId='';
+  }catch(err){error=err.message;}
+  finally{busy=false;draw();}
+ }
+ async function advance(){
+  if(busy)return;
+  error='';
+  if(step===0){step++;draw();return;}
+  if(step===1){
+   if(!siteId&&!source){error='Choose a saved site or upload a ZIP.';draw();return;}
+   if(source?.pages){
+    source.business=document.getElementById('wp-business').value.trim();
+    source.city=document.getElementById('wp-city').value.trim();
+    if(!source.business||!source.city){error='Enter your business name and service area.';draw();return;}
+   }
+   step++;draw();return;
+  }
+  if(step===3){URL.revokeObjectURL(download);download='';step=0;siteId='';source=null;filename='';draw();return;}
+  busy=true;draw();
+  try{
+   const input=siteId?{format,siteId}:{format,site:source.site||{business:source.business,city:source.city,pages:source.pages}};
+   const response=await fetch('/api/wp/build',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrf||''},body:JSON.stringify(input)});
+   if(!response.ok){const result=await response.json();throw Error(result.error||'Could not build the package.');}
+   if(download)URL.revokeObjectURL(download);
+   download=URL.createObjectURL(await response.blob());
+   downloadName=response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1]||'sitocal-wordpress.zip';
+   step=3;
+  }catch(err){error=err.message;}
+  finally{busy=false;draw();}
+ }
+ draw();
+}
+
 const providerMeta={openrouter:['AI','OpenRouter','Generate with a compatible structured-output model and your OpenRouter key.',['token','model']],openai:['AI','OpenAI','Optional AI writing with your own API key and selected model.',['token','model']],github:['GH','GitHub','Push generated files to an initialized repository.',['token','repository','branch']],gitlab:['GL','GitLab','Commit generated files to GitLab.com.',['token','repository','branch']],bitbucket:['BB','Bitbucket','Push files using your account API token.',['email','token','repository','branch']],cloudflare:['CF','Cloudflare Pages','Trigger a build from a connected Git repository.',['hook']],vercel:['▲','Vercel','Create a static deployment from generated files.',['token','project','team']],netlify:['N','Netlify','Upload a static ZIP to an existing Netlify site.',['token','project']],render:['R','Render','Trigger a build from your connected repository.',['token','project']],dataforseo:['↗','DataForSEO','Organic ranks, competitors, demand and research.',['login','password']],registrar:['◎','Cloudflare Registrar','Search domain availability through the registrar API.',['token','account']]};
 const integrationCategories={openrouter:'ai',openai:'ai',github:'build',gitlab:'build',bitbucket:'build',cloudflare:'hosting',vercel:'hosting',netlify:'hosting',render:'hosting',dataforseo:'search',registrar:'domains',google:'search',semrush:'search',ahrefs:'search',seranking:'search',claude:'ai',antigravity:'build',gemini:'ai',grok:'ai',cursor:'build',replit:'build',lovable:'build'};
 function initIntegrationFilters(){const input=document.getElementById('integration-search');if(!input?.addEventListener)return;const category=document.getElementById('integration-category'),availability=document.getElementById('integration-availability');const apply=()=>{let count=0,catalogCount=0;document.querySelectorAll('[data-integration-name]').forEach(card=>{const show=card.dataset.integrationName.includes(input.value.trim().toLowerCase())&&(category.value==='all'||card.dataset.integrationCategory===category.value)&&(availability.value==='all'||card.dataset.integrationAvailability===availability.value);card.hidden=!show;if(show){count++;if(card.dataset.integrationAvailability==='catalog')catalogCount++;}});document.getElementById('integration-filter-status').textContent=count+' platform'+(count===1?'':'s')+' shown';document.getElementById('integration-filter-empty').hidden=count>0;const catalog=document.querySelector('.integration-catalog');if(catalog)catalog.hidden=!catalogCount;};for(const control of [input,category,availability])control.addEventListener(control===input?'input':'change',apply);apply();}
@@ -347,6 +466,7 @@ async function init(){
    if(rawRoute==='google-indexer'){indexerHome();return;}
    const p=publicPage('api-mcp',{href,darkLogo,planCatalog:publicPlans});root.innerHTML=p.html;document.title=p.title+' — Sitocal';initMarketing(root);syncPublicNavigation();return;
   }
+  if(route==='wp'&&!session.user){converter();return;}
   if(!session.user){location.replace(href('login','?returnTo='+encodeURIComponent('/'+canonicalPagePath(route))));return;}
   await refresh();await screen();
  }catch(error){root.innerHTML='<div class="auth panel"><h1>Let’s reconnect.</h1><p>'+esc(error.message)+'</p><button class="btn primary" id="reload">Try again</button></div>';document.getElementById('reload').onclick=()=>location.reload();}

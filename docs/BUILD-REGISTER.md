@@ -1,3 +1,7 @@
+# Session 066 — WordPress conversion wizard
+
+2026-11-03. Replaced the converter with Mode, Source, Build and Install steps. Guest ZIP uploads are processed in memory and signed-in users can select an owned website. Basic and Combined packages include a classic starter theme and draft WXR content. Combined adds Elementor templates. Gutenberg, Elementor and Divi 4 remain available. Arbitrary ZIPs import text and structure; original assets and scripts are excluded. The browser provides manual installation instructions and a download. Syntax checks and all 96 tests passed, including archive contents, guest conversion, origin checks and saved-site ownership. Next: verify Render and test activation/import in a staging WordPress installation.
+
 # Session 065 — Editor sites and settings
 
 2026-11-03. The editor root opens a searchable site library with recent projects and drag-and-drop ZIP or HTML import. Direct project links open the existing visual editor. Added account-scoped editor settings for AI, deployment preselection, the quick-start guide, preview saves, insertion and deletion confirmation. Added OpenRouter key verification and compatible structured-output website generation using account credentials. All 96 automated tests and syntax checks passed. Live Render rollout and external provider calls are pending verification.

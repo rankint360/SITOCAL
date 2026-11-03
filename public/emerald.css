@@ -102,3 +102,14 @@ html[data-theme=dark] .mk-public .studio-page-hero{background:linear-gradient(12
 #editor-preferences-form .form-actions { margin-top:16px; }
 
 .editor-drop { border-style:dashed; }
+
+.wp-public-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:16px max(4vw,16px); border-bottom:1px solid var(--line); }
+.wp-public { max-width: 900px; margin-inline:auto; }
+.wp-wizard { max-width: 900px; }
+.wp-mode-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; border:0; padding:0; margin:12px 0; }
+.wp-mode { display:flex; gap:12px; align-items:start; padding:16px; border:1px solid var(--line); border-radius:12px; cursor:pointer; }
+.wp-mode:has(input:checked) { outline:2px solid var(--accent,#0b7659); }
+.wp-mode small { display:block; margin-top:4px; }
+.wp-drop { border-style:dashed; }
+.wp-review { display:grid; grid-template-columns:minmax(80px,1fr) 2fr; gap:8px; overflow-wrap:anywhere; }
+.wp-review dd { margin:0; }

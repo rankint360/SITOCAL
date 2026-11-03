@@ -1,3 +1,4 @@
+import { conversionFormats, inspectConversionArchive, wordpressPackage } from './lib/wp-converter.mjs';
 import {handleAdmin}from'./lib/admin.mjs';
 import{assertAccess,initializeAccess,routeFeature,planCatalog,setting,atomic}from'./lib/admin-data.mjs';
 import{resolveConnection,managedProviders}from'./lib/shared-connectors.mjs';
@@ -156,6 +157,20 @@ async function handler(req,res){
       const next=randomBytes(32).toString('hex'),csrf=randomBytes(24).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(hash(next),account.id,csrf,Date.now()+604800000);res.setHeader('Set-Cookie',cookie(next));return json(res,200,{user:{id:account.id,email},csrf});
     }
     if(p==='/api/auth/logout'&&req.method==='POST'){if(user&&req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed',403);db.prepare('DELETE FROM sessions WHERE token=?').run(hash(token));res.setHeader('Set-Cookie',cookieName==='sitocal_session'?cookie('',true):[cookie('',true),cookie('',true,cookieName)]);return json(res,200,{ok:true});}
+    if(['/api/wp/inspect','/api/wp/build'].includes(p)&&req.method==='POST'){
+      rate('wp-convert:'+req.socket.remoteAddress,8);
+      if(p.endsWith('/inspect')){
+        if(req.headers['content-type']!=='application/zip')throw new ProviderError('Upload a ZIP archive',415);
+        return json(res,200,inspectConversionArchive(await body(req,12*1024*1024)));
+      }
+      const input=await body(req,8*1024*1024);
+      if(!input||typeof input!=='object'||!conversionFormats.includes(input.format))throw new ProviderError('Choose a supported WordPress format',400);
+      if(input.siteId&&!user)throw new ProviderError('Sign in to use a saved website',401);
+      const site=input.siteId?ownedSite(user,String(input.siteId)).data:validateSite(input.site);
+      const archive=wordpressPackage(site,input.format);
+      res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.business)}-${input.format}.zip"`,'Cache-Control':'no-store'});
+      return res.end(archive);
+    }
     if(p.startsWith('/api/')&&!user)throw new ProviderError('Sign in to continue',401);
     if(user&&p.startsWith('/api/'))assertAccess(db,user,routeFeature(p,req.method));
     if(p==='/api/rewards'&&req.method==='GET')return json(res,200,customerRewards(db,user));
