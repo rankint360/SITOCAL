@@ -1,3 +1,4 @@
+import {launchPlan,saveLaunchPlan,deploymentStatus} from './lib/launch.mjs';
 import { initProfiles, accountProfile, saveProfile, publishedProfile, publishedAvatar } from './lib/account-profile.mjs';
 import { conversionFormats, inspectConversionArchive, wordpressPackage } from './lib/wp-converter.mjs';
 import {handleAdmin}from'./lib/admin.mjs';
@@ -42,6 +43,7 @@ function legacyConnection(user,provider){const row=db.prepare('SELECT secret FRO
 function connection(user,provider){return resolveConnection(store,user,provider);}
 const leadStatuses=['new','contacted','forwarded','archived','spam'];
 db.exec(`
+CREATE TABLE IF NOT EXISTS website_launch(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS editor_preferences(user_id TEXT PRIMARY KEY REFERENCES users(id), settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS support_tickets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),title TEXT NOT NULL,area TEXT NOT NULL,kind TEXT NOT NULL,severity TEXT NOT NULL,site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,status TEXT NOT NULL,updated TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS support_tickets_owner ON support_tickets(user_id,updated);
@@ -326,10 +328,27 @@ async function handler(req,res){
       if(action==='restore'&&req.method==='POST'){const b=await body(req),r=db.prepare('SELECT data FROM revisions WHERE id=? AND site_id=? AND user_id=?').get(b.revision,siteId,user);if(!r)throw new ProviderError('Revision not found',404);return json(res,200,saveSite(user,JSON.parse(r.data),siteId));}
       if(action==='draft-preview'&&req.method==='POST'){const data=validateSite(await body(req)),key=randomBytes(24).toString('hex');for(const[k,v]of draftPreviews)if(v.expires<Date.now())draftPreviews.delete(k);if(draftPreviews.size>500)draftPreviews.delete(draftPreviews.keys().next().value);draftPreviews.set(key,{user,siteId,data,expires:Date.now()+600000});return json(res,200,{key});}
       if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1'));}
-      if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id)):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
+      if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
+      if(action==='launch'&&req.method==='GET')return json(res,200,launchPlan(db,site));
+      if(action==='launch'&&req.method==='PUT')return json(res,200,saveLaunchPlan(db,site,await body(req,4096)));
+      if(action==='deployment-status'&&req.method==='POST'){
+        rate('deployment-status:'+user,12);
+        const input=await body(req,2048);
+        const row=db.prepare("SELECT result FROM jobs WHERE id=? AND site_id=? AND user_id=? AND kind='publish' AND status='completed'").get(String(input.jobId||''),siteId,user);
+        if(!row)throw new ProviderError('Deployment not found',404);
+        const result=JSON.parse(row.result);
+        const provider=result.deployment?.provider;
+        if(!['vercel','netlify'].includes(provider))throw new ProviderError('Check this deployment in your hosting dashboard',409);
+        const status=await deploymentStatus(provider,connection(user,provider),result.deployment.id);
+        result.deploymentStatus=status;
+        db.prepare('UPDATE jobs SET result=? WHERE id=? AND user_id=?').run(JSON.stringify(result),String(input.jobId),user);
+        return json(res,200,status);
+      }
       if(action==='publish'&&req.method==='POST'){
-        const b=await body(req);if(!b.reviewed)throw new ProviderError('Review business facts before publishing',400);if(!['github','gitlab','bitbucket'].includes(b.source)&&!['netlify','vercel'].includes(b.host))throw new ProviderError('Select a source provider or direct deployment host',400);
-        return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data,contactFormUrl(site.id)),out={};if(b.source)out.source=await pushRepository(b.source,connection(user,b.source),files);if(b.host){try{out.deployment=await deploy(b.host,connection(user,b.host),files,site.data.business);}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
+        const b=await body(req);if(b.reviewed!==true)throw new ProviderError('Review business facts before publishing',400);
+        if(!['','github','gitlab','bitbucket'].includes(b.source||'')||!['','netlify','vercel','cloudflare','render'].includes(b.host||'')||!b.source&&!['netlify','vercel'].includes(b.host))throw new ProviderError('Select a source provider or direct deployment host',400);
+        const sourceConfig=b.source?connection(user,b.source):null,hostConfig=b.host?connection(user,b.host):null;
+        return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin),out={};if(b.source)out.source=await pushRepository(b.source,sourceConfig,files);if(b.host){try{out.deployment={...await deploy(b.host,hostConfig,files,site.data.business),provider:b.host};}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
       }
     }
     if(p==='/api/connections'&&req.method==='GET'){const rows=db.prepare('SELECT provider FROM connections WHERE user_id=?').all(user);return json(res,200,{managed:managedProviders(db).filter(p=>!rows.some(r=>r.provider===p)),connections:[...new Set([...rows.map(x=>x.provider),...managedProviders(db)])],checks:db.prepare('SELECT provider,result FROM connector_checks WHERE user_id=?').all(user).map(x=>({provider:x.provider,...JSON.parse(x.result)})),googleConfigured:googleReady()});}

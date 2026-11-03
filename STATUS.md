@@ -1,3 +1,7 @@
+# Session 068 — Launch plan and page readiness
+
+2026-11-03. Added per-site publish defaults, a public HTTPS address, canonical links and sitemap generation, revision-scoped owner confirmations, Netlify and Vercel status refresh, and editor page creation and readiness checks. Syntax checks and all 96 tests passed. A provider-ready build is tracked separately from confirmed homepage, sitemap and form checks. Live staging test requires a disposable hosting destination and a verified Search Console property.
+
 # Session 067 — Shared account settings
 
 2026-11-03. Added canonical customer Settings with synchronized appearance, editable name, opt-in public profiles and photos, referral links, provider controls, API/MCP access summary, plan usage and a support-based closure request. The main site and customer workspaces read the shared account preference. Admin settings retain the separate role-checked operator surface. Public profiles expose only opt-in display fields and links. Existing SITOCAL billing and referrals are reused. Syntax checks and all 96 tests passed, including opt-out, escaping, cross-account username conflicts and CSRF. Next: verify Render and signed-in cross-domain settings in a browser.
