@@ -1,3 +1,7 @@
+# Market research and website operations
+
+Added saved market estimates, pasted keyword grouping, saved organic SERP comparison and builder prefill. Added image library usage and original previews, HTTPS probe totals and per-site form enquiry totals. Provider keyword/SERP retrieval, video, and cross-channel attribution remain pending. Syntax and focused Emerald Studio tests passed locally.
+
 # Workspace quick tools
 
 Added a launch checklist with browser-saved progress, a nine-step walkthrough, a New Website shortcut and a release notes preview. Syntax and focused Emerald Studio tests passed locally.
