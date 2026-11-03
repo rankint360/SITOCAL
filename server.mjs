@@ -1,5 +1,7 @@
+import { probeSite } from './lib/launch-probe.mjs';
+import { searchLocations } from './lib/serp-locations.mjs';
 import {initAccountMail,mailReady,mailStatus,queueAccountLink,requestRecovery,verifyAccountMail,recoverPassword,setLeadAlerts,queueLeadAlert,startAccountMailWorker} from './lib/account-mail.mjs';
-import {launchPlan,saveLaunchPlan,deploymentStatus} from './lib/launch.mjs';
+import {launchPlan,saveLaunchPlan,deploymentStatus,configuredDestination} from './lib/launch.mjs';
 import { initProfiles, accountProfile, saveProfile, publishedProfile, publishedAvatar } from './lib/account-profile.mjs';
 import { conversionFormats, inspectConversionArchive, wordpressPackage } from './lib/wp-converter.mjs';
 import {handleAdmin}from'./lib/admin.mjs';
@@ -38,6 +40,7 @@ const {baseDomain,allowedHosts}=hostConfig(process.env);
 const providers=[...Object.keys(extraProviders),'github','gitlab','bitbucket','netlify','vercel','cloudflare','render','dataforseo','registrar','openai'];
 const geocodeSerpum=createSerpumGeocoder();
 const limits=new Map();
+let activeProbes=0;
 const draftPreviews=new Map();
 function rate(key,max=60){const t=Date.now(),r=limits.get(key);if(limits.size>10000)for(const[k,v]of limits)if(v.until<t)limits.delete(k);if(!r||r.until<t){limits.set(key,{count:1,until:t+60000});return;}if(++r.count>max)throw new ProviderError('Too many requests; try again in a minute',429);}
 function legacyConnection(user,provider){const row=db.prepare('SELECT secret FROM connections WHERE user_id=? AND provider=?').get(user,provider);if(!row)throw new ProviderError(`Connect ${provider} in Integrations first`,409);return store.unseal(row.secret);}
@@ -49,6 +52,7 @@ CREATE INDEX IF NOT EXISTS website_media_site ON website_media(site_id);
 CREATE TABLE IF NOT EXISTS website_search_property(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, property TEXT NOT NULL, origin TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS website_rank_tracking(id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,keyword TEXT NOT NULL,location INTEGER NOT NULL,device TEXT NOT NULL,daily INTEGER NOT NULL,next_run INTEGER NOT NULL,last_status TEXT NOT NULL,UNIQUE(site_id,keyword,location,device));
 CREATE INDEX IF NOT EXISTS rank_due ON website_rank_tracking(daily,next_run);
+CREATE TABLE IF NOT EXISTS website_launch_probe(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,origin TEXT NOT NULL,revision TEXT NOT NULL,result TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS website_launch(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS editor_preferences(user_id TEXT PRIMARY KEY REFERENCES users(id), settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS support_tickets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),title TEXT NOT NULL,area TEXT NOT NULL,kind TEXT NOT NULL,severity TEXT NOT NULL,site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,status TEXT NOT NULL,updated TEXT NOT NULL);
@@ -478,7 +482,19 @@ async function handler(req,res){
         if((await body(req,1024)).reviewed!==true)throw new ProviderError('Authorize this provider check first',400);
         return json(res,200,await runSiteRank(user,site,tracker));
       }
-      if(action==='launch'&&req.method==='GET')return json(res,200,launchPlan(db,site));
+      if(action==='launch/probe'&&req.method==='POST'){
+        rate('launch-probe:'+user,4);
+        const plan=launchPlan(db,site);
+        if(!plan.origin)throw new ProviderError('Save the public website address first',409);
+        if(activeProbes>=4)throw new ProviderError('Launch checks are busy. Try again shortly.',429);
+        activeProbes++;
+        try{
+          const result=await probeSite(plan.origin,{hasContactPage:site.data.pages.some(page=>page.slug==='contact'),contactUrl:contactFormUrl(siteId)});
+          db.prepare('INSERT INTO website_launch_probe VALUES(?,?,?,?) ON CONFLICT(site_id) DO UPDATE SET origin=excluded.origin,revision=excluded.revision,result=excluded.result').run(siteId,plan.origin,site.updated,JSON.stringify(result));
+          return json(res,200,result);
+        }finally{activeProbes--;}
+      }
+      if(action==='launch'&&req.method==='GET'){const plan=launchPlan(db,site);const probe=db.prepare('SELECT result FROM website_launch_probe WHERE site_id=? AND origin=? AND revision=?').get(siteId,plan.origin,site.updated);return json(res,200,{...plan,probe:probe?JSON.parse(probe.result):null});}
       if(action==='launch'&&req.method==='PUT'){
         const input=await body(req,4096);
         return json(res,200,atomic(db,()=>{const before=launchPlan(db,site).origin;const plan=saveLaunchPlan(db,site,input);if(before!==plan.origin)db.prepare("UPDATE website_rank_tracking SET daily=0,next_run=0,last_status='Schedule paused after website address change' WHERE site_id=? AND daily=1").run(siteId);return plan;}));
@@ -499,7 +515,9 @@ async function handler(req,res){
       if(action==='publish'&&req.method==='POST'){
         const b=await body(req);if(b.reviewed!==true)throw new ProviderError('Review business facts before publishing',400);
         if(!['','github','gitlab','bitbucket'].includes(b.source||'')||!['','netlify','vercel','cloudflare','render'].includes(b.host||'')||!b.source&&!['netlify','vercel'].includes(b.host))throw new ProviderError('Select a source provider or direct deployment host',400);
-        const sourceConfig=b.source?connection(user,b.source):null,hostConfig=b.host?connection(user,b.host):null;
+        const plan=launchPlan(db,site);
+        const sourceConfig=b.source?configuredDestination(plan,'source',b.source,connection(user,b.source)):null;
+        const hostConfig=b.host?configuredDestination(plan,'host',b.host,connection(user,b.host)):null;
         return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin,websiteMedia(site.id)),out={};if(b.source)out.source=await pushRepository(b.source,sourceConfig,files);if(b.host){try{out.deployment={...await deploy(b.host,hostConfig,files,site.data.business),provider:b.host};}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
       }
     }
@@ -520,6 +538,7 @@ async function handler(req,res){
       return json(res,200,await job(user,null,'connector-'+provider,()=>executeConnector(provider,c,b)));
     }
     if(p==='/api/jobs'&&req.method==='GET')return json(res,200,{jobs:db.prepare('SELECT * FROM jobs WHERE user_id=? ORDER BY rowid DESC LIMIT 50').all(user).map(j=>({...j,result:JSON.parse(j.result)}))});
+    if(p==='/api/serp/locations'&&req.method==='GET'){rate('serp-locations:'+user,12);return json(res,200,{locations:await searchLocations(url.searchParams.get('country'),url.searchParams.get('q'),connection(user,'dataforseo'))});}
     if(p==='/api/serp/history'&&req.method==='GET')return json(res,200,{observations:db.prepare('SELECT * FROM observations WHERE user_id=? ORDER BY rowid DESC LIMIT 100').all(user).map(o=>({...o,config:JSON.parse(o.config),data:JSON.parse(o.data)}))});
     if(['/api/serp/check','/api/serp/demand','/api/serp/traffic','/api/serp/backlinks'].includes(p)&&req.method==='POST'){
       const b=await body(req);b.keyword=String(b.keyword||'').slice(0,200);b.domain=String(b.domain||'').trim().toLowerCase();b.locationCode=Number(b.locationCode);b.language=/^[a-z]{2}$/.test(b.language)?b.language:'en';b.device=b.device==='mobile'?'mobile':'desktop';b.competitors=String(b.competitors||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,3);

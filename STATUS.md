@@ -1,3 +1,7 @@
+# Session 072 — Launch probes, destination overrides and location lookup
+
+2026-11-03. Added bounded HTTPS homepage, sitemap and contact-link checks with public IPv4 pinning and redirects disabled. Added per-site repository, branch and hosting project overrides, homepage LocalBusiness markup, and a searchable provider city catalog for SERP checks and keyword tracking. Syntax checks and all 100 tests passed with local and provider fixtures. These checks do not submit live enquiries or certify DNS/provider deployment. Cloudflare hook deployments still require provider dashboard verification.
+
 # Session 071 — Recovery, lead alerts and backup drill
 
 2026-11-03. Added verified-email enrollment, single-use password recovery, opt-in lead alerts, encrypted durable mail queue, and operator queue counts. Resend is disabled until configured. Added a non-overwriting SQLite backup tool and worker-disable flag for isolated restores. Syntax checks and all 97 tests passed. Local backup and restore preserved a disposable encrypted connector. User chose local and fixture verification. Real mail delivery and production restore remain unverified.
