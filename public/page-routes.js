@@ -3,7 +3,7 @@ export const pageAliases={'/developer':'/api-mcp','/indexing':'/google-indexer',
 export const toolWorkspaces={'api-mcp':'developer','google-indexer':'indexing'};
 export function canonicalPagePath(name){return ({developer:'api-mcp',indexing:'google-indexer','sign-in':'login','create-account':'register',dashboard:'app'})[name]||name;}
 export function workspaceRoute(name){return toolWorkspaces[name]||name;}
-export const workspaceDestinations=['app','serp','indexing','developer','api-mcp','google-indexer','integrations','billing','account','editor','wp','publish','domains','jobs'];
+export const workspaceDestinations=['app','create-website','serp','indexing','developer','api-mcp','google-indexer','integrations','billing','account','editor','wp','publish','domains','jobs'];
 export function safeEntryDestination(value){const name=String(value||'').replace(/^\//,'');return workspaceDestinations.includes(name)?workspaceRoute(name):'app';}
 export function pageHref(name,{baseDomain='',hostname='',signedIn=false}={},query=''){
  const production=Boolean(baseDomain&&(hostname===baseDomain||hostname.endsWith('.'+baseDomain)));
@@ -13,7 +13,7 @@ export function pageHref(name,{baseDomain='',hostname='',signedIn=false}={},quer
  if(name==='serpum'||name.startsWith('serpum/'))return production?'https://serp.'+baseDomain+'/'+name+query:'/'+name+query;
  if(['serp','serp-landing'].includes(name))return production?'https://serp.'+baseDomain+'/'+query:'/serp'+query;
  const canonical=canonicalPagePath(name);
- const sub=['editor','wp'].includes(canonical)?canonical:['app','publish','integrations','domains','jobs','login','register','developer','indexing','billing','account'].includes(canonical)||['developer','indexing'].includes(name)||canonical==='app'||signedIn&&Object.hasOwn(toolWorkspaces,canonical)?'app':'';
+ const sub=['editor','wp'].includes(canonical)?canonical:['app','create-website','publish','integrations','domains','jobs','login','register','developer','indexing','billing','account'].includes(canonical)||['developer','indexing'].includes(name)||canonical==='app'||signedIn&&Object.hasOwn(toolWorkspaces,canonical)?'app':'';
  const path=['app','editor','wp','landing'].includes(canonical)?'/':'/'+canonical;
  return production?'https://'+(sub?sub+'.':'')+baseDomain+path+query:(canonical==='landing'?'/':'/'+canonical)+query;
 }
@@ -26,6 +26,10 @@ export function entryRedirect({baseDomain='',hostname='',path,search='',signedIn
   const target=pageHref(path.slice(1),context,search);if(production&&target!=='https://'+hostname+path+search)return {status:301,location:target};
  }
  const isApp=path==='/app'||production&&hostname==='app.'+baseDomain&&path==='/';
+ if(path==='/create-website'){
+  if(!signedIn)return {status:302,location:pageHref('login',context,'?returnTo=%2Fcreate-website')};
+  const target=pageHref('create-website',context,search);if(production&&target!=='https://'+hostname+path+search)return {status:301,location:target};
+ }
  if(isApp){
   if(!signedIn)return {status:302,location:pageHref('login',context,'?returnTo=%2Fapp')};
   const target=pageHref('app',context,search);if(production&&target!=='https://'+hostname+path+search)return{status:301,location:target};

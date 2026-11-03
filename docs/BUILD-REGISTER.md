@@ -1,4 +1,7 @@
-# Session 060 — Website dashboard
+# Session 061 — Guided website builder
+
+2026-11-03. Added the signed-in /create-website flow with a local scope picker, four steps, account allowance and review before saving an editable draft. Added Create website and My websites to desktop and mobile navigation. Regional and nationwide scopes are previews. Existing generation and editor APIs are reused. Syntax checks and all 94 tests passed. Next: verify the deployed builder in a signed-in desktop and mobile session.
+\n# Session 060 — Website dashboard
 2026-11-03. Local implementation based on main b954c9c.
 
 Added recent website shortcuts, six months of saved website activity, saved-site plan usage and recent hosting submission counts to the Emerald Studio overview. Preserved the existing dashboard alias and search/setup flow. The chart includes imports and the hosting metric covers the latest 50 activity records.

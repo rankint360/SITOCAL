@@ -85,3 +85,12 @@ html[data-theme=dark] .mk-public .studio-page-hero{background:linear-gradient(12
 @media (max-width: 760px) {
   .sitocal-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.studio-route-create-website [hidden] { display: none !important; }
+.builder-capacity { margin-bottom: 16px; }
+.builder-progress { display: flex; flex-wrap: wrap; gap: 8px 24px; padding-inline-start: 28px; margin: 16px 0; }
+.builder-progress [aria-current="step"] { font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.builder-scopes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; align-items: stretch; }
+.builder-scopes > * { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+#builder-summary dl { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr; gap: 8px; overflow-wrap: anywhere; }
+#builder-summary dd { margin: 0; }
