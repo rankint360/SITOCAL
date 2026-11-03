@@ -1,3 +1,7 @@
+# Session 065 — Editor sites and settings
+
+2026-11-03. The editor root opens a searchable site library with recent projects and drag-and-drop ZIP or HTML import. Direct project links open the existing visual editor. Added account-scoped editor settings for AI, deployment preselection, the quick-start guide, preview saves, insertion and deletion confirmation. Added OpenRouter key verification and compatible structured-output website generation using account credentials. All 96 automated tests and syntax checks passed. Live Render rollout and external provider calls are pending verification.
+
 # Session 064 — Research and support workspace
 
 2026-11-03. Added the filterable SITOCAL release timeline, private support tickets with screenshot attachments and an owner/Support reply queue, a private customer phrase library, a focused SERP Checker using DataForSEO, and API/MCP onboarding for the existing scoped tools. Call phrases are manually supplied. Support replies stay in the ticket thread. SERP checks require a configured provider and can consume provider units. Syntax checks and all 95 tests passed, including private screenshot downloads, ticket lifecycle and account isolation. Next: verify the Render deployment and signed-in views.

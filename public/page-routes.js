@@ -3,7 +3,7 @@ export const pageAliases={'/developer':'/api-mcp','/indexing':'/google-indexer',
 export const toolWorkspaces={'api-mcp':'developer','google-indexer':'indexing'};
 export function canonicalPagePath(name){return ({developer:'api-mcp',indexing:'google-indexer','sign-in':'login','create-account':'register',dashboard:'app',upgrade:'billing'})[name]||name;}
 export function workspaceRoute(name){return toolWorkspaces[name]||name;}
-export const workspaceDestinations=['app','create-website','my-websites','generations','deployments','form-leads','call-earnings','call-intelligence','serp-checker','support-tickets','whats-new','serp','indexing','developer','api-mcp','google-indexer','integrations','billing','account','editor','wp','publish','domains','jobs'];
+export const workspaceDestinations=['app','create-website','editor-settings','my-websites','generations','deployments','form-leads','call-earnings','call-intelligence','serp-checker','support-tickets','whats-new','serp','indexing','developer','api-mcp','google-indexer','integrations','billing','account','editor','wp','publish','domains','jobs'];
 export function safeEntryDestination(value){const name=String(value||'').replace(/^\//,'');return workspaceDestinations.includes(name)?workspaceRoute(name):'app';}
 export function pageHref(name,{baseDomain='',hostname='',signedIn=false}={},query=''){
  const production=Boolean(baseDomain&&(hostname===baseDomain||hostname.endsWith('.'+baseDomain)));
@@ -13,7 +13,7 @@ export function pageHref(name,{baseDomain='',hostname='',signedIn=false}={},quer
  if(name==='serpum'||name.startsWith('serpum/'))return production?'https://serp.'+baseDomain+'/'+name+query:'/'+name+query;
  if(['serp','serp-landing'].includes(name))return production?'https://serp.'+baseDomain+'/'+query:'/serp'+query;
  const canonical=canonicalPagePath(name);
- const sub=['editor','wp'].includes(canonical)?canonical:['app','create-website','my-websites','generations','deployments','form-leads','call-earnings','call-intelligence','serp-checker','support-tickets','whats-new','publish','integrations','domains','jobs','login','register','developer','indexing','billing','account'].includes(canonical)||['developer','indexing'].includes(name)||canonical==='app'||signedIn&&Object.hasOwn(toolWorkspaces,canonical)?'app':'';
+ const sub=canonical==='editor-settings'?'editor':['editor','wp'].includes(canonical)?canonical:['app','create-website','my-websites','generations','deployments','form-leads','call-earnings','call-intelligence','serp-checker','support-tickets','whats-new','publish','integrations','domains','jobs','login','register','developer','indexing','billing','account'].includes(canonical)||['developer','indexing'].includes(name)||canonical==='app'||signedIn&&Object.hasOwn(toolWorkspaces,canonical)?'app':'';
  const path=['app','editor','wp','landing'].includes(canonical)?'/':'/'+canonical;
  return production?'https://'+(sub?sub+'.':'')+baseDomain+path+query:(canonical==='landing'?'/':'/'+canonical)+query;
 }
@@ -26,7 +26,7 @@ export function entryRedirect({baseDomain='',hostname='',path,search='',signedIn
   const target=pageHref(path.slice(1),context,search);if(production&&target!=='https://'+hostname+path+search)return {status:301,location:target};
  }
  const isApp=path==='/app'||production&&hostname==='app.'+baseDomain&&path==='/';
- if(['/create-website','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new'].includes(path)){
+ if(['/create-website','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new'].includes(path)){
   if(!signedIn)return {status:302,location:pageHref('login',context,'?returnTo='+encodeURIComponent(path))};
   const target=pageHref(path.slice(1),context,search);if(production&&target!=='https://'+hostname+path+search)return {status:301,location:target};
  }

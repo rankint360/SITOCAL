@@ -61,8 +61,17 @@ test('website leads and payout records stay isolated and generation history link
     assert.deepEqual(Buffer.from(await download.arrayBuffer()),Buffer.from(screenshot.split(',')[1],'base64'));
     assert.equal((await call('/api/workspace/support',{method:'POST',cookie:other,csrf:otherAuth.csrf,body:{ticket:ticket.id,message:'Cannot access this ticket'}})).status,404);
     assert.equal((await call('/api/serp/check',{method:'POST',cookie,csrf,body:{keyword:'plumbing Austin',locationCode:2840}})).status,409);
+    const prefsPath='/api/editor/preferences';
+    const defaults=await(await call(prefsPath,{cookie})).json();
+    assert.equal(defaults.confirmRemove,true);
+    const preferences={...defaults,saveOnPreview:true,aiProvider:'openrouter',source:'github',host:'netlify'};
+    assert.equal((await call(prefsPath,{method:'PUT',cookie,body:preferences})).status,403);
+    assert.equal((await call(prefsPath,{method:'PUT',cookie,csrf,body:{...preferences,host:'invalid'}})).status,400);
+    assert.equal((await call(prefsPath,{method:'PUT',cookie,csrf,body:preferences})).status,200);
+    assert.deepEqual(await(await call(prefsPath,{cookie})).json(),preferences);
+    assert.deepEqual(await(await call(prefsPath,{cookie:other})).json(),defaults);
     const history=await(await call('/api/jobs',{cookie})).json();
     assert(history.jobs.some(job=>job.kind==='template-generation'&&job.site_id===site.id));
-    for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade','/support-tickets','/whats-new','/serp-checker','/call-intelligence'])assert.equal((await call(path,{cookie})).status,200,path);
+    for(const path of ['/my-websites','/generations','/deployments','/form-leads','/call-earnings','/upgrade','/support-tickets','/whats-new','/serp-checker','/call-intelligence','/editor-settings'])assert.equal((await call(path,{cookie})).status,200,path);
   }finally{proc.kill();await once(proc,'exit');const target=resolve(dir),base=resolve(tmpdir())+sep;if(!target.startsWith(base)||!target.split(sep).pop().startsWith('sitocal-api-'))throw Error('Unsafe test cleanup');rmSync(target,{recursive:true,force:true});}
 });

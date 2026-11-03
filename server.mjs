@@ -40,6 +40,7 @@ function legacyConnection(user,provider){const row=db.prepare('SELECT secret FRO
 function connection(user,provider){return resolveConnection(store,user,provider);}
 const leadStatuses=['new','contacted','forwarded','archived','spam'];
 db.exec(`
+CREATE TABLE IF NOT EXISTS editor_preferences(user_id TEXT PRIMARY KEY REFERENCES users(id), settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS support_tickets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),title TEXT NOT NULL,area TEXT NOT NULL,kind TEXT NOT NULL,severity TEXT NOT NULL,site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,status TEXT NOT NULL,updated TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS support_tickets_owner ON support_tickets(user_id,updated);
 CREATE TABLE IF NOT EXISTS support_messages(id TEXT PRIMARY KEY,ticket_id TEXT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,author TEXT NOT NULL,message TEXT NOT NULL,created TEXT NOT NULL,attachment BLOB,media TEXT);
@@ -50,6 +51,10 @@ CREATE TABLE IF NOT EXISTS website_leads(id TEXT PRIMARY KEY, site_id TEXT NOT N
 CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
 CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
 `);
+function editorPreferences(user){
+ const row=db.prepare('SELECT settings FROM editor_preferences WHERE user_id=?').get(user);
+ return row?JSON.parse(row.settings):{showGuide:true,saveOnPreview:false,confirmRemove:true,showInsert:true,aiProvider:'',host:'',source:''};
+}
 function contactFormUrl(siteId){return publicOrigin+'/website-contact/'+encodeURIComponent(siteId);}
 function ownedSite(user,siteId){const row=db.prepare('SELECT * FROM sites WHERE id=? AND user_id=?').get(siteId,user);if(!row)throw new ProviderError('Project not found',404);return {...row,data:JSON.parse(row.data)};}
 function saveSite(user,data,siteId){assertAccess(db,user,siteId?'editor':'builder');const now=new Date().toISOString();const v=validateSite(data);if(siteId){ownedSite(user,siteId);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);db.prepare('UPDATE sites SET data=?,updated=? WHERE id=? AND user_id=?').run(JSON.stringify(v),now,siteId,user);}else{checkSiteCapacity(db,user);siteId=id();db.prepare('INSERT INTO sites VALUES(?,?,?,?,?)').run(siteId,user,JSON.stringify(v),now,now);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);}return ownedSite(user,siteId);}
@@ -231,6 +236,15 @@ async function handler(req,res){
       if(!db.prepare('DELETE FROM call_phrases WHERE id=? AND user_id=?').run(String(input.id||''),user).changes)throw new ProviderError('Phrase not found',404);
       return json(res,200,{ok:true});
     }
+    if(p==='/api/editor/preferences'&&req.method==='GET')return json(res,200,editorPreferences(user));
+    if(p==='/api/editor/preferences'&&req.method==='PUT'){
+      const input=await body(req,4096);
+      if(!input||typeof input!=='object'||!['showGuide','saveOnPreview','confirmRemove','showInsert'].every(key=>typeof input[key]==='boolean')||!['',...aiProviders].includes(input.aiProvider)||!['','netlify','vercel','cloudflare','render'].includes(input.host)||!['','github','gitlab','bitbucket'].includes(input.source))throw new ProviderError('Choose supported editor defaults',400);
+      const {showGuide,saveOnPreview,confirmRemove,showInsert,aiProvider,host,source}=input;
+      const value={showGuide,saveOnPreview,confirmRemove,showInsert,aiProvider,host,source};
+      db.prepare('INSERT INTO editor_preferences VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET settings=excluded.settings').run(user,JSON.stringify(value));
+      return json(res,200,value);
+    }
     if(p==='/api/workspace/leads'&&req.method==='GET'){
       const status=url.searchParams.get('status')||'all';
       if(status!=='all'&&!leadStatuses.includes(status))throw new ProviderError('Invalid lead status',400);
@@ -321,7 +335,7 @@ async function handler(req,res){
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));

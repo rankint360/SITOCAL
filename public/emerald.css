@@ -96,3 +96,9 @@ html[data-theme=dark] .mk-public .studio-page-hero{background:linear-gradient(12
 #builder-summary dd { margin: 0; }
 
 .workspace-lead-message { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.editor-pref { display:flex; align-items:start; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); }
+.editor-pref small { display:block; }
+#editor-preferences-form .form-actions { margin-top:16px; }
+
+.editor-drop { border-style:dashed; }
