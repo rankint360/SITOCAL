@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function uiHarness(){
   const elements={},handlers={};
   const element=id=>elements[id]||(elements[id]={innerHTML:'',showModal(){},close(){}});
-  const context=vm.createContext({document:{getElementById:element,querySelector:()=>({content:''}),addEventListener(type,handler){(handlers[type]??=[]).push(handler);}},window:{addEventListener(){}},location:{hostname:'localhost',pathname:'/app',search:''},URLSearchParams,console});
+  const context=vm.createContext({mountAppearance(){},document:{getElementById:element,querySelector:()=>({content:''}),addEventListener(type,handler){(handlers[type]??=[]).push(handler);}},window:{addEventListener(){}},location:{hostname:'localhost',pathname:'/app',search:''},URLSearchParams,console});
   for(const file of ['page-routes.js','navigation.js','serpum-features.js','serpum-data.js','serpum.js','policies.js','marketing.js','tools.js','auth.js','product-landings.js']){const js=(await readFile(path.join(root,'public',file),'utf8')).replace(/^import .*;$/mg,'').replace(/export /g,'');vm.runInContext(js,context);}
   const source=(await readFile(path.join(root,'public/app.js'),'utf8')).replace(/^if\(location.hostname.endsWith.*$/m,'').replace(/^import .*;$/mg,'').replace(/^initToolEvents\(.*$/mg,'').replace(/^initAuthEvents\(.*$/mg,'').replace(/^initAppearance\(.*$/mg,'');
   vm.runInContext(source,context);

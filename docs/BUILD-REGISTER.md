@@ -1,3 +1,7 @@
+# Workspace appearance customizer
+
+2026-11-03. Added eight palette presets with dashboard previews, including Glass, Ocean and Rose and System, Light and Dark modes to the workspace and admin headers. Browser preferences share a SITOCAL-domain cookie. Production verification remains pending.
+
 # Session 077 — Native LeadSmart CSV import
 
 2026-11-03. Coverage Intelligence accepts LeadSmart exports in the browser and separates duration and CPL. Rows without usable location data and payout values expressed as ranges are excluded. Validated 233,963 payout records across 39,861 ZIPs using the supplied export. Syntax checks and all 102 tests passed. Importer code shipped to main in f9e2012. Production deployment verification is pending. Next action is to confirm the deployed asset and obtain an approved recurring source for automatic refresh.
@@ -406,4 +410,3 @@ Session034 integrity correction: server.mjs upload at279b2ca was truncated in to
 
 
 035 / 2026-10-29: User explicitly requested merge PR1 and audit leftover work/old names. Marked draft ready and merged expected head5635975 into main commit4b2924639c56192967e81a1e61d447fb0152f79d. No other open PRs; comparison confirms feature commits fully included. Node HTTPS health verified HTTP200/version0.1.4 at sitocal.com and sitocal.onrender.com; root/app/editor/wp/serp and landing CSS/logo assets served200. Native PowerShell SSL failed locally; Node trusted HTTPS succeeded. No authenticated live test performed. Legacy audit outputs/LEGACY-NAME-AUDIT.md: no old-named repository paths; internal Sitocal DB/cookie/manifest/editor/meta/schema/package/blueprint/test labels plus WordPress author metadata remain; historical Sitocal URLs in docs only. No blind data/session/import renames. Synchronizing remaining local handoff notes/research docs to main; no unmerged app source remains. Prior27 passing tests apply to unchanged runtime. No old repository accessed/written.
-
