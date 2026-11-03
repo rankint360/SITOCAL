@@ -1,3 +1,7 @@
+# Session 069 — Site search tracking and lead follow-up
+
+2026-11-03. Added site-scoped verified Search Console property binding, on-demand and opt-in daily DataForSEO keyword tracking, ranking history, and a handoff to Indexer. Added dashboard enquiry counts, private lead notes, assignment labels and status history. Changing a public site address pauses scheduled checks. Syntax checks and all 96 tests passed. User chose local and fixture verification for now. Real provider calls, delivery notifications and staging launch are pending.
+
 # Session 068 — Launch plan and page readiness
 
 2026-11-03. Added per-site publish defaults, a public HTTPS address, canonical links and sitemap generation, revision-scoped owner confirmations, Netlify and Vercel status refresh, and editor page creation and readiness checks. Syntax checks and all 96 tests passed. A provider-ready build is tracked separately from confirmed homepage, sitemap and form checks. Live staging test requires a disposable hosting destination and a verified Search Console property.

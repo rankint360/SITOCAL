@@ -16,7 +16,7 @@ import { socialMethods,authOrigin,startSocial,finishSocial,flowCookie } from './
 import { queueInspection,inspectionBatch,startInspectionWorker,batchCsv,inspectionUsage } from './lib/indexing-jobs.mjs';
 import { billingStatus,checkout,billingPortal,stripeWebhook,checkSiteCapacity } from './lib/billing.mjs';
 import { handlePublicAccess,createApiKey,listApiKeys,revokeApiKey } from './lib/access.mjs';
-import { indexingAction } from './lib/indexing.mjs';
+import { indexingAction,propertyUrl } from './lib/indexing.mjs';
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +43,9 @@ function legacyConnection(user,provider){const row=db.prepare('SELECT secret FRO
 function connection(user,provider){return resolveConnection(store,user,provider);}
 const leadStatuses=['new','contacted','forwarded','archived','spam'];
 db.exec(`
+CREATE TABLE IF NOT EXISTS website_search_property(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, property TEXT NOT NULL, origin TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS website_rank_tracking(id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,keyword TEXT NOT NULL,location INTEGER NOT NULL,device TEXT NOT NULL,daily INTEGER NOT NULL,next_run INTEGER NOT NULL,last_status TEXT NOT NULL,UNIQUE(site_id,keyword,location,device));
+CREATE INDEX IF NOT EXISTS rank_due ON website_rank_tracking(daily,next_run);
 CREATE TABLE IF NOT EXISTS website_launch(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS editor_preferences(user_id TEXT PRIMARY KEY REFERENCES users(id), settings TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS support_tickets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),title TEXT NOT NULL,area TEXT NOT NULL,kind TEXT NOT NULL,severity TEXT NOT NULL,site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,status TEXT NOT NULL,updated TEXT NOT NULL);
@@ -52,6 +55,9 @@ CREATE INDEX IF NOT EXISTS support_messages_thread ON support_messages(ticket_id
 CREATE TABLE IF NOT EXISTS call_phrases(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),niche TEXT NOT NULL,service TEXT NOT NULL,phrase TEXT NOT NULL,outcome TEXT NOT NULL,created TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS call_phrases_owner ON call_phrases(user_id,created);
 CREATE TABLE IF NOT EXISTS website_leads(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, name TEXT NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL, created TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS lead_followup(lead_id TEXT PRIMARY KEY REFERENCES website_leads(id) ON DELETE CASCADE, assigned TEXT NOT NULL, note TEXT NOT NULL, updated TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS lead_status_events(id TEXT PRIMARY KEY,lead_id TEXT NOT NULL REFERENCES website_leads(id) ON DELETE CASCADE,status TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS lead_status_thread ON lead_status_events(lead_id,created);
 CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
 CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
 `);
@@ -283,18 +289,29 @@ async function handler(req,res){
       db.prepare('INSERT INTO editor_preferences VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET settings=excluded.settings').run(user,JSON.stringify(value));
       return json(res,200,value);
     }
+    if(p==='/api/workspace/leads/count'&&req.method==='GET')return json(res,200,{newLeads:db.prepare("SELECT count(*) n FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? AND l.status='new'").get(user).n});
     if(p==='/api/workspace/leads'&&req.method==='GET'){
       const status=url.searchParams.get('status')||'all';
       if(status!=='all'&&!leadStatuses.includes(status))throw new ProviderError('Invalid lead status',400);
       const counts=db.prepare('SELECT l.status,count(*) count FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? GROUP BY l.status').all(user);
       const leads=db.prepare("SELECT l.* FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? AND (?='all' OR l.status=?) ORDER BY l.created DESC LIMIT 100").all(user,status,status);
-      return json(res,200,{leads,counts,forms:db.prepare('SELECT id,json_extract(data,?) business FROM sites WHERE user_id=? ORDER BY updated DESC').all('$.business',user).map(site=>({...site,url:contactFormUrl(site.id)}))});
+      return json(res,200,{leads:leads.map(lead=>({...lead,followup:db.prepare('SELECT assigned,note,updated FROM lead_followup WHERE lead_id=?').get(lead.id),history:db.prepare('SELECT status,created FROM lead_status_events WHERE lead_id=? ORDER BY rowid DESC LIMIT 8').all(lead.id)})),counts,forms:db.prepare('SELECT id,json_extract(data,?) business FROM sites WHERE user_id=? ORDER BY updated DESC').all('$.business',user).map(site=>({...site,url:contactFormUrl(site.id)}))});
     }
     if(p==='/api/workspace/leads'&&req.method==='PATCH'){
-      const input=await body(req,2048);
+      const input=await body(req,8192);
       if(!leadStatuses.includes(input.status))throw new ProviderError('Invalid lead status',400);
-      const result=db.prepare('UPDATE website_leads SET status=? WHERE id=? AND site_id IN (SELECT id FROM sites WHERE user_id=?)').run(input.status,String(input.id||''),user);
-      if(!result.changes)throw new ProviderError('Lead not found',404);
+      const assigned=String(input.assigned||'').trim(),note=String(input.note||'').trim(),leadId=String(input.id||'');
+      if(assigned.length>120||note.length>1200)throw new ProviderError('Shorten the assignee or follow-up note',400);
+      atomic(db,()=>{
+        const lead=db.prepare('SELECT l.status FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE l.id=? AND s.user_id=?').get(leadId,user);
+        if(!lead)throw new ProviderError('Lead not found',404);
+        const now=new Date().toISOString();
+        if(lead.status!==input.status){
+          db.prepare('UPDATE website_leads SET status=? WHERE id=?').run(input.status,leadId);
+          db.prepare('INSERT INTO lead_status_events VALUES(?,?,?,?)').run(id(),leadId,input.status,now);
+        }
+        if(input.assigned!==undefined||input.note!==undefined)db.prepare('INSERT INTO lead_followup VALUES(?,?,?,?) ON CONFLICT(lead_id) DO UPDATE SET assigned=excluded.assigned,note=excluded.note,updated=excluded.updated').run(leadId,assigned,note,now);
+      });
       return json(res,200,{ok:true});
     }
     if(p==='/api/workspace/calls'&&req.method==='GET'){
@@ -329,8 +346,58 @@ async function handler(req,res){
       if(action==='draft-preview'&&req.method==='POST'){const data=validateSite(await body(req)),key=randomBytes(24).toString('hex');for(const[k,v]of draftPreviews)if(v.expires<Date.now())draftPreviews.delete(k);if(draftPreviews.size>500)draftPreviews.delete(draftPreviews.keys().next().value);draftPreviews.set(key,{user,siteId,data,expires:Date.now()+600000});return json(res,200,{key});}
       if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1'));}
       if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
+      if(action==='search'&&req.method==='GET'){
+        assertAccess(db,user,'serp');
+        const binding=db.prepare('SELECT property,origin FROM website_search_property WHERE site_id=?').get(siteId);
+        const trackers=db.prepare('SELECT * FROM website_rank_tracking WHERE site_id=? ORDER BY rowid').all(siteId);
+        const history=db.prepare("SELECT config,data,created FROM observations WHERE user_id=? AND json_extract(config,'$.siteId')=? ORDER BY rowid DESC LIMIT 100").all(user,siteId).map(row=>({...row,config:JSON.parse(row.config),data:JSON.parse(row.data)}));
+        const origin=launchPlan(db,site).origin;
+        return json(res,200,{origin,property:binding?.origin===origin?binding.property:'',trackers,history});
+      }
+      if(action==='search/property'&&req.method==='PUT'){
+        assertAccess(db,user,'indexing');rate('search-property:'+user,10);
+        const input=await body(req,2048),property=String(input.property||'');
+        if(!property){db.prepare('DELETE FROM website_search_property WHERE site_id=?').run(siteId);return json(res,200,{property:''});}
+        const origin=launchPlan(db,site).origin;
+        if(!origin)throw new ProviderError('Save the website address in the launch plan first',409);
+        propertyUrl(property,origin+'/');
+        const available=await indexingAction(store,user,'properties',{});
+        if(!available.properties.some(row=>row.siteUrl===property&&row.permissionLevel!=='siteUnverifiedUser'))throw new ProviderError('Choose a verified Search Console property',403);
+        db.prepare('INSERT INTO website_search_property VALUES(?,?,?) ON CONFLICT(site_id) DO UPDATE SET property=excluded.property,origin=excluded.origin').run(siteId,property,origin);
+        return json(res,200,{property});
+      }
+      if(action==='search/keywords'&&req.method==='POST'){
+        assertAccess(db,user,'serp');rate('track-settings:'+user,12);
+        const input=await body(req,2048),keyword=String(input.keyword||'').trim(),location=Number(input.location),device=input.device;
+        if(!keyword||keyword.length>200||!Number.isSafeInteger(location)||location<1||!['mobile','desktop'].includes(device))throw new ProviderError('Enter a keyword, location code and device',400);
+        const daily=input.daily===true;
+        if(daily&&input.reviewed!==true)throw new ProviderError('Authorize recurring provider usage to schedule this keyword',400);
+        if(!launchPlan(db,site).origin)throw new ProviderError('Save the website address in the launch plan first',409);
+        if(daily&&!db.prepare("SELECT 1 FROM connections WHERE user_id=? AND provider='dataforseo'").get(user))throw new ProviderError('Connect your own DataForSEO credentials to schedule checks',409);
+        const tracker=id();
+        atomic(db,()=>{
+          if(db.prepare('SELECT count(*) n FROM website_rank_tracking WHERE site_id=?').get(siteId).n>=10)throw new ProviderError('Track up to 10 keywords per website',409);
+          db.prepare('INSERT INTO website_rank_tracking VALUES(?,?,?,?,?,?,?,?)').run(tracker,siteId,keyword,location,device,daily?1:0,daily?Date.now()+86400000:0,'');
+        });
+        return json(res,201,{id:tracker});
+      }
+      const trackerAction=action?.match(/^search\/keywords\/([a-f0-9-]+)$/);
+      if(trackerAction&&['DELETE','POST'].includes(req.method)){
+        assertAccess(db,user,'serp');
+        const tracker=db.prepare('SELECT * FROM website_rank_tracking WHERE id=? AND site_id=?').get(trackerAction[1],siteId);
+        if(!tracker)throw new ProviderError('Tracked keyword not found',404);
+        if(req.method==='DELETE'){
+          db.prepare('DELETE FROM website_rank_tracking WHERE id=? AND site_id=?').run(tracker.id,siteId);
+          return json(res,200,{ok:true});
+        }
+        if((await body(req,1024)).reviewed!==true)throw new ProviderError('Authorize this provider check first',400);
+        return json(res,200,await runSiteRank(user,site,tracker));
+      }
       if(action==='launch'&&req.method==='GET')return json(res,200,launchPlan(db,site));
-      if(action==='launch'&&req.method==='PUT')return json(res,200,saveLaunchPlan(db,site,await body(req,4096)));
+      if(action==='launch'&&req.method==='PUT'){
+        const input=await body(req,4096);
+        return json(res,200,atomic(db,()=>{const before=launchPlan(db,site).origin;const plan=saveLaunchPlan(db,site,input);if(before!==plan.origin)db.prepare("UPDATE website_rank_tracking SET daily=0,next_run=0,last_status='Schedule paused after website address change' WHERE site_id=? AND daily=1").run(siteId);return plan;}));
+      }
       if(action==='deployment-status'&&req.method==='POST'){
         rate('deployment-status:'+user,12);
         const input=await body(req,2048);
@@ -390,7 +457,7 @@ async function handler(req,res){
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/settings','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/settings','/editor-settings','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/call-intelligence','/serp-checker','/site-search','/support-tickets','/whats-new','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));
@@ -410,6 +477,41 @@ async function handler(req,res){
     res.end(entry);
   }catch(e){if(e instanceof ProviderError)return json(res,e.status,{error:e.message});if(/Unsafe|ZIP|Archive|archive|site|Business|Page slugs|Choose|Invalid|page with/.test(e.message))return json(res,400,{error:e.message});console.error('Request failed:',p,e.name);json(res,500,{error:'The request could not be completed. Inspect server/provider logs before retrying external actions.'});}
 }
+async function runSiteRank(user,site,tracker){
+ assertAccess(db,user,'serp');
+ const origin=launchPlan(db,site).origin;
+ if(!origin)throw new ProviderError('Save the website address in the launch plan first',409);
+ const config={siteId:site.id,trackerId:tracker.id,keyword:tracker.keyword,domain:new URL(origin).hostname,locationCode:tracker.location,device:tracker.device,language:'en',competitors:[]};
+ const credential=connection(user,'dataforseo');
+ return job(user,site.id,'site-rank',async()=>{
+  const result=await checkSerp(credential,config);
+  db.prepare('INSERT INTO observations VALUES(?,?,?,?,?)').run(id(),user,JSON.stringify(config),JSON.stringify(result),new Date().toISOString());
+  return result;
+ });
+}
+function startRankWorker(){
+ let active=false;
+ const timer=setInterval(async()=>{
+  if(active)return;
+  active=true;
+  try{
+   const row=db.prepare('SELECT t.*,s.user_id FROM website_rank_tracking t JOIN sites s ON s.id=t.site_id WHERE t.daily=1 AND t.next_run<=? ORDER BY t.next_run LIMIT 1').get(Date.now());
+   if(!row)return;
+   const claim=db.prepare('UPDATE website_rank_tracking SET next_run=? WHERE id=? AND next_run=? AND daily=1').run(Date.now()+86400000,row.id,row.next_run);
+   if(!claim.changes)return;
+   let status='Completed';
+   try{
+    if(!db.prepare("SELECT 1 FROM connections WHERE user_id=? AND provider='dataforseo'").get(row.user_id))throw new ProviderError('Reconnect your DataForSEO account',409);
+    await runSiteRank(row.user_id,ownedSite(row.user_id,row.site_id),row);
+   }catch(error){status=error instanceof ProviderError?error.message:'Check failed';}
+   db.prepare('UPDATE website_rank_tracking SET last_status=? WHERE id=?').run(status.slice(0,180),row.id);
+  }catch(error){console.error('Rank worker failed:',error.name);}
+  finally{active=false;}
+ },30000);
+ timer.unref();
+ return ()=>clearInterval(timer);
+}
+const stopRankWorker=startRankWorker();
 const stopInspectionWorker=startInspectionWorker(store);
 const server=http.createServer(handler);server.requestTimeout=120000;server.headersTimeout=15000;server.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Sitocal local alpha: http://localhost:${port}`));
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopInspectionWorker();server.close(()=>{db.close();process.exit(0);});});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopInspectionWorker();stopRankWorker();server.close(()=>{db.close();process.exit(0);});});
