@@ -1,3 +1,7 @@
+# Workspace quick tools
+
+Added a launch checklist with browser-saved progress, a nine-step walkthrough, a New Website shortcut and a release notes preview. Syntax and focused Emerald Studio tests passed locally.
+
 # Workspace appearance customizer
 
 2026-11-03. Added eight palette presets with dashboard previews, including Glass, Ocean and Rose and System, Light and Dark modes to the workspace and admin headers. Browser preferences share a SITOCAL-domain cookie. Production verification remains pending.
