@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { openStore,id,hash,passwordHash,checkPassword } from './lib/store.mjs';
-import { draftSite,validateSite,renderPage,staticFiles,converterFiles,slug } from './lib/sites.mjs';
+import { esc,draftSite,validateSite,renderPage,staticFiles,converterFiles,slug } from './lib/sites.mjs';
 import { zip,unzip } from './lib/archive.mjs';
 import { ProviderError,request,pushRepository,deploy,checkSerp,demand } from './lib/providers.mjs';
 import { googleReady,googleStart,googleCallback,googleProperties,googleReport } from './lib/google.mjs';
@@ -38,13 +38,20 @@ const draftPreviews=new Map();
 function rate(key,max=60){const t=Date.now(),r=limits.get(key);if(limits.size>10000)for(const[k,v]of limits)if(v.until<t)limits.delete(k);if(!r||r.until<t){limits.set(key,{count:1,until:t+60000});return;}if(++r.count>max)throw new ProviderError('Too many requests; try again in a minute',429);}
 function legacyConnection(user,provider){const row=db.prepare('SELECT secret FROM connections WHERE user_id=? AND provider=?').get(user,provider);if(!row)throw new ProviderError(`Connect ${provider} in Integrations first`,409);return store.unseal(row.secret);}
 function connection(user,provider){return resolveConnection(store,user,provider);}
+const leadStatuses=['new','contacted','forwarded','archived','spam'];
+db.exec(`
+CREATE TABLE IF NOT EXISTS website_leads(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, name TEXT NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL, created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
+CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
+`);
+function contactFormUrl(siteId){return publicOrigin+'/website-contact/'+encodeURIComponent(siteId);}
 function ownedSite(user,siteId){const row=db.prepare('SELECT * FROM sites WHERE id=? AND user_id=?').get(siteId,user);if(!row)throw new ProviderError('Project not found',404);return {...row,data:JSON.parse(row.data)};}
 function saveSite(user,data,siteId){assertAccess(db,user,siteId?'editor':'builder');const now=new Date().toISOString();const v=validateSite(data);if(siteId){ownedSite(user,siteId);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);db.prepare('UPDATE sites SET data=?,updated=? WHERE id=? AND user_id=?').run(JSON.stringify(v),now,siteId,user);}else{checkSiteCapacity(db,user);siteId=id();db.prepare('INSERT INTO sites VALUES(?,?,?,?,?)').run(siteId,user,JSON.stringify(v),now,now);db.prepare('INSERT INTO revisions VALUES(?,?,?,?,?)').run(id(),siteId,user,JSON.stringify(v),now);}return ownedSite(user,siteId);}
 async function body(req,maxBytes=17*1024*1024){const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>maxBytes)throw new ProviderError('Request too large',413);chunks.push(c);}const b=Buffer.concat(chunks);if(req.headers['content-type']?.startsWith('application/zip'))return b;try{return JSON.parse(b.toString()||'{}');}catch{throw new ProviderError('Invalid JSON',400);}}
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));}
 function safeResult(value){return JSON.stringify(value);}
 async function job(user,siteId,kind,fn){
-  const daily=db.prepare('SELECT count(*) n FROM jobs WHERE user_id=? AND created>=?').get(user,new Date().toISOString().slice(0,10)).n;if(daily>=Number(process.env.DAILY_PROVIDER_ACTION_LIMIT||50))throw new ProviderError('Daily provider action limit reached',429);
+  const daily=db.prepare("SELECT count(*) n FROM jobs WHERE user_id=? AND created>=? AND kind!='template-generation'").get(user,new Date().toISOString().slice(0,10)).n;if(daily>=Number(process.env.DAILY_PROVIDER_ACTION_LIMIT||50))throw new ProviderError('Daily provider action limit reached',429);
   const active=db.prepare("SELECT id FROM jobs WHERE user_id=? AND status='running'").get(user);if(active)throw new ProviderError('Another provider action is running. Wait before retrying.',409);
   const jobId=id();db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(jobId,user,siteId||null,kind,'running','{}',new Date().toISOString());
   try{const result=await fn();db.prepare('UPDATE jobs SET status=?,result=? WHERE id=?').run('completed',safeResult(result),jobId);return {jobId,...result};}catch(e){db.prepare('UPDATE jobs SET status=?,result=? WHERE id=?').run('failed',JSON.stringify({message:e instanceof ProviderError?e.message:'Request outcome may be unknown; inspect provider before retrying.'}),jobId);throw e;}
@@ -80,10 +87,34 @@ async function handler(req,res){
     if(['GET','HEAD'].includes(req.method)){const redirect=entryRedirect({baseDomain,hostname,path:p,search:url.search,signedIn:Boolean(user)});if(redirect){res.writeHead(redirect.status,{Location:redirect.location});return res.end();}}
     if(['POST','PUT','PATCH','DELETE'].includes(req.method)){
       const requestOrigin=req.headers.origin;if(!requestOrigin||requestOrigin!==origin)throw new ProviderError('Origin check failed',403);
-      if(user && p!=='/api/serpum/geocode' && p!=='/api/contact' && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
+      if(user && p!=='/api/serpum/geocode' && p!=='/api/contact' && !p.startsWith('/website-contact/') && !p.startsWith('/api/auth/') && req.headers['x-csrf-token']!==session.csrf)throw new ProviderError('Session verification failed. Reload this page.',403);
     }
     if((p==='/serpum'||p==='/api/serpum/geocode')&&setting(db,'toolEnabled:serpum',true)===false)throw new ProviderError('SERPUM is temporarily unavailable for maintenance',503);
     if(p==='/api/serpum/geocode'&&req.method==='POST'){rate('serpum-geocode:'+req.socket.remoteAddress,8);const input=await body(req,2048);return json(res,200,await geocodeSerpum(input));}
+    const contactMatch=p.match(/^\/website-contact\/([a-zA-Z0-9-]+)$/);
+    if(contactMatch&&['GET','POST'].includes(req.method)){
+      const site=db.prepare('SELECT id,user_id,data FROM sites WHERE id=?').get(contactMatch[1]);
+      if(!site)throw new ProviderError('Contact form unavailable',404);
+      assertAccess(db,site.user_id);
+      const business=esc(JSON.parse(site.data).business);
+      if(req.method==='POST'){
+        rate('website-lead:'+site.id+':'+req.socket.remoteAddress,6);
+        if(!req.headers['content-type']?.startsWith('application/x-www-form-urlencoded'))throw new ProviderError('Use the website contact form',415);
+        const parts=[];let size=0;
+        for await(const part of req){size+=part.length;if(size>8192)throw new ProviderError('Contact form is too large',413);parts.push(part);}
+        const form=new URLSearchParams(Buffer.concat(parts).toString());
+        const name=form.get('name')?.trim()||'',email=form.get('email')?.trim()||'',message=form.get('message')?.trim()||'';
+        if(!name||name.length>120||email.length>200||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!message||message.length>2000)throw new ProviderError('Enter a name, valid email and message',400);
+        if(!form.get('company_url')){
+          const recent=db.prepare('SELECT count(*) AS count FROM website_leads WHERE site_id=? AND created>=?').get(site.id,new Date(Date.now()-86400000).toISOString()).count;
+          if(recent>=100)throw new ProviderError('This contact form has reached its daily limit',429);
+          db.prepare('INSERT INTO website_leads VALUES(?,?,?,?,?,?,?)').run(id(),site.id,name,email,message,'new',new Date().toISOString());
+        }
+        res.writeHead(303,{Location:p+'?sent=1'});return res.end();
+      }
+      res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex'});
+      return res.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Contact ${business}</title><link rel="stylesheet" href="/assets/style.css"><main class="content"><section class="panel"><h1>Contact ${business}</h1>${url.searchParams.get('sent')==='1'?'<p role="status">Your message was submitted.</p>':''}<form method="post" action="${p}"><label class="field">Name<input name="name" maxlength="120" autocomplete="name" required></label><label class="field">Email<input name="email" type="email" maxlength="200" autocomplete="email" required></label><label class="field">How can we help?<textarea name="message" maxlength="2000" required></textarea></label><div hidden><label>Company URL<input name="company_url" tabindex="-1" autocomplete="off"></label></div><p>Your details will be shared with ${business} so they can reply.</p><button class="btn primary">Send message</button></form></section></main></html>`);
+    }
     if(p==='/api/health')return json(res,200,{status:'ok',version:'0.5.1',mode:'development-alpha'});
     if(p==='/api/contact'&&req.method==='POST'){
       rate('contact:'+req.socket.remoteAddress,4);const b=await body(req);
@@ -137,8 +168,34 @@ async function handler(req,res){
     if(p==='/api/indexing/history'&&req.method==='GET')return json(res,200,{events:db.prepare('SELECT * FROM indexing_events WHERE user_id=? ORDER BY created DESC LIMIT 50').all(user).map(e=>({...e,config:JSON.parse(e.config),result:JSON.parse(e.result)}))});
     const indexAction=p.match(/^\/api\/indexing\/(properties|sitemaps|inspect|submit)$/);
     if(indexAction&&req.method==='POST'){rate('indexing:'+user,30);const input=await body(req);const result=await indexingAction(store,user,indexAction[1],input);if(['inspect','submit'].includes(indexAction[1]))db.prepare('INSERT INTO indexing_events VALUES(?,?,?,?,?,?)').run(id(),user,indexAction[1],JSON.stringify(input),JSON.stringify(result),new Date().toISOString());return json(res,200,result);}
+    if(p==='/api/workspace/leads'&&req.method==='GET'){
+      const status=url.searchParams.get('status')||'all';
+      if(status!=='all'&&!leadStatuses.includes(status))throw new ProviderError('Invalid lead status',400);
+      const counts=db.prepare('SELECT l.status,count(*) count FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? GROUP BY l.status').all(user);
+      const leads=db.prepare("SELECT l.* FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? AND (?='all' OR l.status=?) ORDER BY l.created DESC LIMIT 100").all(user,status,status);
+      return json(res,200,{leads,counts,forms:db.prepare('SELECT id,json_extract(data,?) business FROM sites WHERE user_id=? ORDER BY updated DESC').all('$.business',user).map(site=>({...site,url:contactFormUrl(site.id)}))});
+    }
+    if(p==='/api/workspace/leads'&&req.method==='PATCH'){
+      const input=await body(req,2048);
+      if(!leadStatuses.includes(input.status))throw new ProviderError('Invalid lead status',400);
+      const result=db.prepare('UPDATE website_leads SET status=? WHERE id=? AND site_id IN (SELECT id FROM sites WHERE user_id=?)').run(input.status,String(input.id||''),user);
+      if(!result.changes)throw new ProviderError('Lead not found',404);
+      return json(res,200,{ok:true});
+    }
+    if(p==='/api/workspace/calls'&&req.method==='GET'){
+      const records=db.prepare('SELECT r.* FROM website_call_records r JOIN sites s ON s.id=r.site_id WHERE s.user_id=? ORDER BY day DESC LIMIT 100').all(user);
+      return json(res,200,{records});
+    }
+    if(p==='/api/workspace/calls'&&req.method==='POST'){
+      const input=await body(req,2048);
+      ownedSite(user,String(input.siteId||''));
+      const {day,currency}=input,calls=Number(input.calls),paid=Number(input.paid),cents=Math.round(Number(input.payout)*100);
+      if(input.calls==null||input.paid==null||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day))||new Date(day).toISOString().slice(0,10)!==day||!['USD','PKR','GBP','EUR','CAD','AUD'].includes(currency)||![calls,paid,cents].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=1000000000)||paid>calls||!/^\d+(\.\d{1,2})?$/.test(input.payout))throw new ProviderError('Enter a valid date, call counts and payout',400);
+      db.prepare('INSERT INTO website_call_records VALUES(?,?,?,?,?,?,?) ON CONFLICT(site_id,day,currency) DO UPDATE SET calls=excluded.calls,paid=excluded.paid,cents=excluded.cents').run(id(),input.siteId,day,calls,paid,cents,currency);
+      return json(res,200,{ok:true});
+    }
     if(p==='/api/sites'&&req.method==='GET')return json(res,200,{sites:db.prepare('SELECT * FROM sites WHERE user_id=? ORDER BY updated DESC').all(user).map(s=>({...s,data:JSON.parse(s.data)}))});
-    if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const provider=b.aiProvider||'openai';if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);const c=connection(user,provider);const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b,provider);return {...saveSite(user,r.site),usage:r.usage,model:r.model,provider,promptVersion:r.promptVersion};});return json(res,201,generated);}return json(res,201,saveSite(user,b.pages?b:draftSite(b)));}
+    if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const provider=b.aiProvider||'openai';if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);const c=connection(user,provider);const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b,provider);return {...saveSite(user,r.site),usage:r.usage,model:r.model,provider,promptVersion:r.promptVersion};});return json(res,201,generated);}if(b.pages)return json(res,201,saveSite(user,b));return json(res,201,atomic(db,()=>{const site=saveSite(user,draftSite(b));db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(id(),user,site.id,'template-generation','completed','{}',site.created);return site;}));}
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=findManifest(files,validateSite);
       if(manifest)return json(res,201,saveSite(user,manifest));
@@ -156,10 +213,10 @@ async function handler(req,res){
       if(action==='restore'&&req.method==='POST'){const b=await body(req),r=db.prepare('SELECT data FROM revisions WHERE id=? AND site_id=? AND user_id=?').get(b.revision,siteId,user);if(!r)throw new ProviderError('Revision not found',404);return json(res,200,saveSite(user,JSON.parse(r.data),siteId));}
       if(action==='draft-preview'&&req.method==='POST'){const data=validateSite(await body(req)),key=randomBytes(24).toString('hex');for(const[k,v]of draftPreviews)if(v.expires<Date.now())draftPreviews.delete(k);if(draftPreviews.size>500)draftPreviews.delete(draftPreviews.keys().next().value);draftPreviews.set(key,{user,siteId,data,expires:Date.now()+600000});return json(res,200,{key});}
       if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1'));}
-      if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
+      if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id)):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
       if(action==='publish'&&req.method==='POST'){
         const b=await body(req);if(!b.reviewed)throw new ProviderError('Review business facts before publishing',400);if(!['github','gitlab','bitbucket'].includes(b.source)&&!['netlify','vercel'].includes(b.host))throw new ProviderError('Select a source provider or direct deployment host',400);
-        return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data),out={};if(b.source)out.source=await pushRepository(b.source,connection(user,b.source),files);if(b.host){try{out.deployment=await deploy(b.host,connection(user,b.host),files,site.data.business);}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
+        return json(res,200,await job(user,siteId,'publish',async()=>{const files=staticFiles(site.data,contactFormUrl(site.id)),out={};if(b.source)out.source=await pushRepository(b.source,connection(user,b.source),files);if(b.host){try{out.deployment=await deploy(b.host,connection(user,b.host),files,site.data.business);}catch(e){if(out.source)return {...out,partial:true,deploymentError:e instanceof ProviderError?e.message:'Deployment request failed; reconcile in provider dashboard.'};throw e;}}return out;}));
       }
     }
     if(p==='/api/connections'&&req.method==='GET'){const rows=db.prepare('SELECT provider FROM connections WHERE user_id=?').all(user);return json(res,200,{managed:managedProviders(db).filter(p=>!rows.some(r=>r.provider===p)),connections:[...new Set([...rows.map(x=>x.provider),...managedProviders(db)])],checks:db.prepare('SELECT provider,result FROM connector_checks WHERE user_id=?').all(user).map(x=>({provider:x.provider,...JSON.parse(x.result)})),googleConfigured:googleReady()});}
@@ -201,7 +258,7 @@ async function handler(req,res){
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
     if(files[p]){res.writeHead(200,{'Content-Type':files[p][1]+'; charset=utf-8'});return res.end(await readFile(path.join(root,'public',files[p][0])));}
-    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
+    if(!publicRoutes.includes(p.slice(1))&&!navigationRoutes.includes(p.slice(1))&&!['/','/app','/create-website','/my-websites','/generations','/deployments','/form-leads','/call-earnings','/editor','/wp','/serp','/domains','/integrations','/login','/register','/publish','/jobs','/sign-in','/create-account','/dashboard','/about','/contact','/blog','/products-services','/privacy-policy','/terms-and-conditions','/refund-policy','/service-policy','/shipping-policy','/api-mcp','/google-indexer','/developer','/indexing','/billing','/account','/serp-home'].includes(p))throw new ProviderError('Page not found',404);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public','index.html'),'utf8');let entry=html.replace('name="sitocal-domain" content=""',`name="sitocal-domain" content="${baseDomain}"`);
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));

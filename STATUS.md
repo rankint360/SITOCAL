@@ -1,3 +1,7 @@
+# Session 062 — Website operations workspace
+
+2026-11-03. Added My Websites search and layouts, Generations with template and AI job history, Deployments with provider submission outcomes, Form Leads with hosted contact forms and an account-scoped inbox, and manual Call Earnings grouped by currency. Upgrade uses the existing SITOCAL plan catalog, Stripe configuration and verified manual payment workflow. ZIP exports and publishing include the hosted contact form link. Existing published sites need a fresh export or publish to add the link. Ringba sync, hosted checkout via crypto and automatic deployment verification are outside this release. Syntax checks and all 95 tests passed, including lead submission, cross-account isolation and payout updates. Next: verify deployment and signed-in views on Render.
+
 # Session 061 — Guided website builder
 
 2026-11-03. Added the signed-in /create-website flow with a local scope picker, four steps, account allowance and review before saving an editable draft. Added Create website and My websites to desktop and mobile navigation. Regional and nationwide scopes are previews. Existing generation and editor APIs are reused. Syntax checks and all 94 tests passed. Next: verify the deployed builder in a signed-in desktop and mobile session.

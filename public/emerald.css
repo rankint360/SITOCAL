@@ -94,3 +94,5 @@ html[data-theme=dark] .mk-public .studio-page-hero{background:linear-gradient(12
 .builder-scopes > * { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
 #builder-summary dl { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr; gap: 8px; overflow-wrap: anywhere; }
 #builder-summary dd { margin: 0; }
+
+.workspace-lead-message { white-space: pre-wrap; overflow-wrap: anywhere; }
