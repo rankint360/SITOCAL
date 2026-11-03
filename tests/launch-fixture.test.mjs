@@ -40,6 +40,10 @@ test('draft to deployment, lead, Search Console and rank tracking with provider 
   const [rewrite]=await call(base+'/rewrite-section','POST',{provider:'openai',style:'concise',reviewed:true,section:original});
   assert.equal(rewrite.section.heading,'Clear the drain');
   assert.equal((await call(base))[0].data.pages[0].sections[0].heading,original.heading);
+  const [budget]=await call('/api/account/provider-budget','PUT',{ai:0,search:5});
+  assert.equal(budget.used.ai,1);
+  const limited=await fetch(origin+base+'/rewrite-section',{method:'POST',headers:{Origin:origin,Cookie:cookie,'X-CSRF-Token':csrf,'Content-Type':'application/json'},body:JSON.stringify({provider:'openai',style:'concise',reviewed:true,section:original})});
+  assert.equal(limited.status,429);
   await call(base+'/launch','PUT',{source:'',host:'netlify',origin:'https://launch.example.invalid',checked:[],revision:site.updated});
   const [published]=await call(base+'/publish','POST',{source:'',host:'netlify',reviewed:true});
   const [deployment]=await call(base+'/deployment-status','POST',{jobId:published.jobId});
@@ -51,6 +55,10 @@ test('draft to deployment, lead, Search Console and rank tracking with provider 
   await call(base+'/search/property','PUT',{property});
   assert.equal((await call(base+'/search'))[0].property,property);
   assert.equal((await call('/api/indexing/inspect','POST',{property,url:property}))[0].verdict,'PASS');
+  assert.equal((await call(base+'/search'))[0].indexing.length,site.data.pages.length);
+  assert.equal((await call(base+'/search/inspect','POST',{}))[0].count,site.data.pages.length);
+  assert.equal((await call(base+'/lead-alerts','PUT',{enabled:false}))[0].enabled,false);
+  assert.equal((await call('/api/workspace/leads'))[0].forms[0].alerts,false);
   const [tracker]=await call(base+'/search/keywords','POST',{keyword:'drain cleaning Austin',location:2840,device:'mobile'});
   await call(base+'/search/keywords/'+tracker.id,'POST',{reviewed:true});
   const [search]=await call(base+'/search');

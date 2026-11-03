@@ -1,3 +1,4 @@
+import {providerBudget,updateProviderBudget,enforceProviderBudget} from './lib/provider-budgets.mjs';
 import { probeSite } from './lib/launch-probe.mjs';
 import { searchLocations } from './lib/serp-locations.mjs';
 import {initAccountMail,mailReady,mailStatus,queueAccountLink,requestRecovery,verifyAccountMail,recoverPassword,setLeadAlerts,queueLeadAlert,startAccountMailWorker} from './lib/account-mail.mjs';
@@ -47,6 +48,8 @@ function legacyConnection(user,provider){const row=db.prepare('SELECT secret FRO
 function connection(user,provider){return resolveConnection(store,user,provider);}
 const leadStatuses=['new','contacted','forwarded','archived','spam'];
 db.exec(`
+CREATE TABLE IF NOT EXISTS provider_budgets(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,ai INTEGER NOT NULL,search INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS website_lead_alerts(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,enabled INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS website_media(id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,name TEXT NOT NULL,media TEXT NOT NULL,bytes BLOB NOT NULL,created TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS website_media_site ON website_media(site_id);
 CREATE TABLE IF NOT EXISTS website_search_property(site_id TEXT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE, property TEXT NOT NULL, origin TEXT NOT NULL);
@@ -73,6 +76,24 @@ initAccountMail(db);
 function editorPreferences(user){
  const row=db.prepare('SELECT settings FROM editor_preferences WHERE user_id=?').get(user);
  return row?JSON.parse(row.settings):{showGuide:true,saveOnPreview:false,confirmRemove:true,showInsert:true,aiProvider:'',host:'',source:''};
+}
+function websiteIndexingOverview(user,site,origin,property){
+ if(!origin||!property)return [];
+ const expected=new Set(site.data.pages.map(page=>origin+(page.slug==='home'?'/':'/'+page.slug+'.html')));
+ const recent=db.prepare(`SELECT i.url,i.status,i.result,b.updated FROM indexing_items i JOIN indexing_batches b ON i.batch_id=b.id
+  WHERE b.user_id=? AND b.property=? AND substr(i.url,1,?)=? AND i.status IN ('completed','failed') ORDER BY b.updated DESC,i.rowid DESC LIMIT 300`).all(user,property,origin.length+1,origin+'/');
+ const snapshots=new Map();
+ for(const row of recent){
+  if(!expected.has(row.url)||snapshots.has(row.url))continue;
+  const result=JSON.parse(row.result);
+  snapshots.set(row.url,{url:row.url,status:row.status,verdict:result.verdict||'',detail:result.error||result.data?.inspectionResult?.indexStatusResult?.coverageState||'',observedAt:row.updated});
+ }
+ const order={failed:0,review:1,uninspected:2,pass:3};
+ return [...expected].map(url=>{
+  const row=snapshots.get(url);
+  if(!row)return {url,category:'uninspected'};
+  return {...row,category:row.status==='failed'?'failed':row.verdict==='PASS'?'pass':'review'};
+ }).sort((a,b)=>order[a.category]-order[b.category]);
 }
 function contactFormUrl(siteId){return publicOrigin+'/website-contact/'+encodeURIComponent(siteId);}
 function validWebsiteImage(media,bytes){
@@ -109,6 +130,7 @@ async function body(req,maxBytes=17*1024*1024){const chunks=[];let size=0;for aw
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));}
 function safeResult(value){return JSON.stringify(value);}
 async function job(user,siteId,kind,fn){
+  enforceProviderBudget(db,user,kind);
   const daily=db.prepare("SELECT count(*) n FROM jobs WHERE user_id=? AND created>=? AND kind!='template-generation'").get(user,new Date().toISOString().slice(0,10)).n;if(daily>=Number(process.env.DAILY_PROVIDER_ACTION_LIMIT||50))throw new ProviderError('Daily provider action limit reached',429);
   const active=db.prepare("SELECT id FROM jobs WHERE user_id=? AND status='running'").get(user);if(active)throw new ProviderError('Another provider action is running. Wait before retrying.',409);
   const jobId=id();db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(jobId,user,siteId||null,kind,'running','{}',new Date().toISOString());
@@ -166,7 +188,7 @@ async function handler(req,res){
         if(!form.get('company_url')){
           const recent=db.prepare('SELECT count(*) AS count FROM website_leads WHERE site_id=? AND created>=?').get(site.id,new Date(Date.now()-86400000).toISOString()).count;
           if(recent>=100)throw new ProviderError('This contact form has reached its daily limit',429);
-          atomic(db,()=>{db.prepare('INSERT INTO website_leads VALUES(?,?,?,?,?,?,?)').run(id(),site.id,name,email,message,'new',new Date().toISOString());if(mailReady())queueLeadAlert(store,site.user_id,authOrigin(publicOrigin));});
+          atomic(db,()=>{db.prepare('INSERT INTO website_leads VALUES(?,?,?,?,?,?,?)').run(id(),site.id,name,email,message,'new',new Date().toISOString());if(mailReady()&&db.prepare('SELECT enabled FROM website_lead_alerts WHERE site_id=?').get(site.id)?.enabled!==0)queueLeadAlert(store,site.user_id,authOrigin(publicOrigin));});
         }
         res.writeHead(303,{Location:p+'?sent=1'});return res.end();
       }
@@ -243,6 +265,8 @@ async function handler(req,res){
     }
     if(p.startsWith('/api/')&&!user)throw new ProviderError('Sign in to continue',401);
     if(user&&p.startsWith('/api/'))assertAccess(db,user,routeFeature(p,req.method));
+    if(p==='/api/account/provider-budget'&&req.method==='GET')return json(res,200,providerBudget(db,user));
+    if(p==='/api/account/provider-budget'&&req.method==='PUT')return json(res,200,updateProviderBudget(db,user,await body(req,2048)));
     if(p==='/api/account/email'&&req.method==='GET')return json(res,200,mailStatus(db,user));
     if(p==='/api/account/email/verify'&&req.method==='POST'){
       rate('verify-mail:'+user,5);
@@ -353,7 +377,7 @@ async function handler(req,res){
       if(status!=='all'&&!leadStatuses.includes(status))throw new ProviderError('Invalid lead status',400);
       const counts=db.prepare('SELECT l.status,count(*) count FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? GROUP BY l.status').all(user);
       const leads=db.prepare("SELECT l.* FROM website_leads l JOIN sites s ON s.id=l.site_id WHERE s.user_id=? AND (?='all' OR l.status=?) ORDER BY l.created DESC LIMIT 100").all(user,status,status);
-      return json(res,200,{leads:leads.map(lead=>({...lead,followup:db.prepare('SELECT assigned,note,updated FROM lead_followup WHERE lead_id=?').get(lead.id),history:db.prepare('SELECT status,created FROM lead_status_events WHERE lead_id=? ORDER BY rowid DESC LIMIT 8').all(lead.id)})),counts,forms:db.prepare('SELECT id,json_extract(data,?) business FROM sites WHERE user_id=? ORDER BY updated DESC').all('$.business',user).map(site=>({...site,url:contactFormUrl(site.id)}))});
+      return json(res,200,{leads:leads.map(lead=>({...lead,followup:db.prepare('SELECT assigned,note,updated FROM lead_followup WHERE lead_id=?').get(lead.id),history:db.prepare('SELECT status,created FROM lead_status_events WHERE lead_id=? ORDER BY rowid DESC LIMIT 8').all(lead.id)})),counts,forms:db.prepare('SELECT id,json_extract(data,?) business FROM sites WHERE user_id=? ORDER BY updated DESC').all('$.business',user).map(site=>({...site,url:contactFormUrl(site.id),alerts:db.prepare('SELECT enabled FROM website_lead_alerts WHERE site_id=?').get(site.id)?.enabled!==0}))});
     }
     if(p==='/api/workspace/leads'&&req.method==='PATCH'){
       const input=await body(req,8192);
@@ -442,13 +466,28 @@ async function handler(req,res){
       if(action==='draft-preview'&&req.method==='POST'){const data=validateSite(await body(req)),key=randomBytes(24).toString('hex');for(const[k,v]of draftPreviews)if(v.expires<Date.now())draftPreviews.delete(k);if(draftPreviews.size>500)draftPreviews.delete(draftPreviews.keys().next().value);draftPreviews.set(key,{user,siteId,data,expires:Date.now()+600000});return json(res,200,{key});}
       if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1',Object.fromEntries(websiteMedia(siteId).map(image=>[image.id,'data:'+image.media+';base64,'+image.bytes.toString('base64')]))));}
       if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin,websiteMedia(site.id)):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
+      if(action==='search/inspect'&&req.method==='POST'){
+        assertAccess(db,user,'indexing');rate('site-index-inspection:'+user,5);
+        const origin=launchPlan(db,site).origin;
+        const binding=db.prepare('SELECT property FROM website_search_property WHERE site_id=? AND origin=?').get(siteId,origin);
+        if(!origin||!binding)throw new ProviderError('Link a verified Search Console property to this site first',409);
+        const urls=site.data.pages.map(page=>origin+(page.slug==='home'?'/':'/'+page.slug+'.html')).join('\n');
+        return json(res,202,await queueInspection(store,user,{property:binding.property,urls}));
+      }
+      if(action==='lead-alerts'&&req.method==='PUT'){
+        const input=await body(req,1024);
+        if(typeof input.enabled!=='boolean')throw new ProviderError('Choose whether to send alerts for this website',400);
+        db.prepare('INSERT INTO website_lead_alerts VALUES(?,?) ON CONFLICT(site_id) DO UPDATE SET enabled=excluded.enabled').run(siteId,Number(input.enabled));
+        return json(res,200,{enabled:input.enabled});
+      }
       if(action==='search'&&req.method==='GET'){
         assertAccess(db,user,'serp');
         const binding=db.prepare('SELECT property,origin FROM website_search_property WHERE site_id=?').get(siteId);
         const trackers=db.prepare('SELECT * FROM website_rank_tracking WHERE site_id=? ORDER BY rowid').all(siteId);
         const history=db.prepare("SELECT config,data,created FROM observations WHERE user_id=? AND json_extract(config,'$.siteId')=? ORDER BY rowid DESC LIMIT 100").all(user,siteId).map(row=>({...row,config:JSON.parse(row.config),data:JSON.parse(row.data)}));
         const origin=launchPlan(db,site).origin;
-        return json(res,200,{origin,property:binding?.origin===origin?binding.property:'',trackers,history});
+        const property=binding?.origin===origin?binding.property:'';
+        return json(res,200,{origin,property,trackers,history,indexing:websiteIndexingOverview(user,site,origin,property)});
       }
       if(action==='search/property'&&req.method==='PUT'){
         assertAccess(db,user,'indexing');rate('search-property:'+user,10);

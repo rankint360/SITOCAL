@@ -1,3 +1,7 @@
+# Session 074 — Site indexing review, lead routing and provider limits
+
+2026-11-03. Added site-scoped bulk inspection of exported URLs and a prioritized page indexing review. Added per-site inbox-only or account email alert routing and customer-configurable daily attempt caps for AI and search providers. Extended the end-to-end fixture to exercise the new controls. Syntax checks and all 101 tests passed. Limits are counts of provider attempts, not currency budgets. Local and fixture verification only per user preference.
+
 # Session 073 — Reviewable AI edits and end-to-end launch fixture
 
 2026-11-03. Added editor section reuse and an OpenAI/OpenRouter rewrite workflow that compares the current and suggested text before applying a draft edit. Added a full disposable HTTP fixture covering website creation, a review-only AI rewrite, Netlify package submission and status, a hosted enquiry, Search Console binding and inspection, and DataForSEO rank history. Syntax checks and all 101 tests passed. No live provider calls were made per the user's verification preference.
