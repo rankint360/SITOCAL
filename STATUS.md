@@ -1,3 +1,10 @@
+# Session 060 — Website dashboard
+2026-11-03. Local implementation based on main b954c9c.
+
+Added recent website shortcuts, six months of saved website activity, saved-site plan usage and recent hosting submission counts to the Emerald Studio overview. Preserved the existing dashboard alias and search/setup flow. The chart includes imports and the hosting metric covers the latest 50 activity records.
+
+Syntax checks and all 94 tests passed. Live deployment and browser visual review pending. Next: review the signed-in dashboard at desktop and mobile widths before release.
+
 # Session 059 — Canonical account/SERP entry points and admin navigation
 2026-11-01 (Asia/Karachi). Version 0.5.1.
 

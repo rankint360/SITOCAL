@@ -51,3 +51,37 @@ html[data-theme=dark] .mk-public .studio-page-hero{background:linear-gradient(12
 .studio-route-integrations .integration-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,235px),1fr))}.studio-route-developer .content>section.panel:first-of-type,.studio-route-indexing .content>section.panel:first-of-type{grid-column:1;grid-row:2/span 2}.studio-route-developer .content>section.panel:nth-of-type(2),.studio-route-indexing .content>section.panel:nth-of-type(2){grid-column:2;grid-row:2}.studio-route-developer .content>section.panel:last-of-type,.studio-route-indexing .content>section.panel:last-of-type{grid-column:2;grid-row:3}@media(max-width:900px){.studio-route-developer .content>section.panel,.studio-route-indexing .content>section.panel{grid-column:1!important;grid-row:auto!important}}
 
 .marketing nav[aria-label="Breadcrumb"]{justify-content:flex-start!important;gap:12px}.site-primary>.site-dropdown{background:transparent!important;border:0}.studio-route-wp .upload-zone h2,.studio-route-domains .content>section.panel h2{font-weight:650!important}.product-page .product-hero h1 em{font-weight:650}html[data-theme=dark] .product-page .product-hero-notes{color:#afc4b7}html[data-theme=dark] .product-page .product-orbit{color:#bdd9c7;background:#264a36}
+
+/* Website dashboard */
+.sitocal-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.sitocal-dashboard-grid > section { min-width: 0; overflow-wrap: anywhere; }
+.sitocal-dashboard-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+  text-align: center;
+}
+.sitocal-dashboard-track {
+  height: 100px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  border-bottom: 1px solid var(--line);
+  margin: 6px 0;
+}
+.sitocal-dashboard-track span {
+  width: min(70%, 36px);
+  background: #0b7659;
+  border-radius: 4px 4px 0 0;
+}
+@media (max-width: 760px) {
+  .sitocal-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+}
