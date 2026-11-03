@@ -1,3 +1,4 @@
+import {summarizeRingba} from './lib/ringba-report.mjs';
 import {providerBudget,updateProviderBudget,enforceProviderBudget} from './lib/provider-budgets.mjs';
 import { probeSite } from './lib/launch-probe.mjs';
 import { searchLocations } from './lib/serp-locations.mjs';
@@ -69,6 +70,7 @@ CREATE TABLE IF NOT EXISTS lead_followup(lead_id TEXT PRIMARY KEY REFERENCES web
 CREATE TABLE IF NOT EXISTS lead_status_events(id TEXT PRIMARY KEY,lead_id TEXT NOT NULL REFERENCES website_leads(id) ON DELETE CASCADE,status TEXT NOT NULL,created TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS lead_status_thread ON lead_status_events(lead_id,created);
 CREATE INDEX IF NOT EXISTS website_leads_site ON website_leads(site_id,created);
+CREATE TABLE IF NOT EXISTS website_ringba_totals(site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,day TEXT NOT NULL,currency TEXT NOT NULL,calls INTEGER NOT NULL,paid INTEGER NOT NULL,cents INTEGER NOT NULL,imported TEXT NOT NULL,PRIMARY KEY(site_id,day,currency));
 CREATE TABLE IF NOT EXISTS website_call_records(id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE, day TEXT NOT NULL, calls INTEGER NOT NULL, paid INTEGER NOT NULL, cents INTEGER NOT NULL, currency TEXT NOT NULL, UNIQUE(site_id,day,currency));
 `);
 initProfiles(db);
@@ -396,9 +398,25 @@ async function handler(req,res){
       });
       return json(res,200,{ok:true});
     }
+    if(p==='/api/workspace/calls/ringba'&&req.method==='POST'){
+      rate('ringba-import:'+user,8);
+      const input=await body(req,1024*1024),site=ownedSite(user,String(input.siteId||''));
+      const currency=input.currency;
+      if(!['USD','PKR','GBP','EUR','CAD','AUD'].includes(currency))throw new ProviderError('Choose the report currency',400);
+      const rows=summarizeRingba(input.csv,{number:input.number,format:input.format});
+      if(input.commit===true){
+        atomic(db,()=>{
+          const replace=db.prepare('INSERT INTO website_ringba_totals VALUES(?,?,?,?,?,?,?) ON CONFLICT(site_id,day,currency) DO UPDATE SET calls=excluded.calls,paid=excluded.paid,cents=excluded.cents,imported=excluded.imported');
+          const now=new Date().toISOString();
+          for(const row of rows)replace.run(site.id,row.day,currency,row.calls,row.paid,row.cents,now);
+        });
+      }
+      return json(res,200,{rows,committed:input.commit===true});
+    }
     if(p==='/api/workspace/calls'&&req.method==='GET'){
       const records=db.prepare('SELECT r.* FROM website_call_records r JOIN sites s ON s.id=r.site_id WHERE s.user_id=? ORDER BY day DESC LIMIT 100').all(user);
-      return json(res,200,{records});
+      const imported=db.prepare('SELECT r.* FROM website_ringba_totals r JOIN sites s ON s.id=r.site_id WHERE s.user_id=? ORDER BY day DESC LIMIT 100').all(user);
+      return json(res,200,{records,imported});
     }
     if(p==='/api/workspace/calls'&&req.method==='POST'){
       const input=await body(req,2048);

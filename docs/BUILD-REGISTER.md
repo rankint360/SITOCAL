@@ -1,3 +1,7 @@
+# Session 075 — Ringba report import and launch runbook
+
+2026-11-03. Added review-first Ringba Call Details CSV import by tracking number, with replaceable daily aggregate totals stored separately from manual entries. Caller details and raw CSVs are not retained. Added a launch runbook for the draft-to-live-to-lead-to-search workflow and staging acceptance. Syntax checks and all 101 tests passed. User requested local and fixture verification only. Automatic Ringba synchronization, direct DNS provisioning and live provider and WordPress acceptance remain pending.
+
 # Session 074 — Site indexing review, lead routing and provider limits
 
 2026-11-03. Added site-scoped bulk inspection of exported URLs and a prioritized page indexing review. Added per-site inbox-only or account email alert routing and customer-configurable daily attempt caps for AI and search providers. Extended the end-to-end fixture to exercise the new controls. Syntax checks and all 101 tests passed. Limits are counts of provider attempts, not currency budgets. Local and fixture verification only per user preference.

@@ -407,15 +407,23 @@ async function formLeads(){
     <section class="panel">${leads.length?leads.map(lead=>`<article class="activity-item"><h2>${esc(lead.name)}</h2><p>${esc(siteTitle(lead.site_id))} · ${date(lead.created)} · ${esc(lead.email)}</p><p class="workspace-lead-message">${esc(lead.message)}</p><div class="row"><a class="btn small" href="mailto:${encodeURIComponent(lead.email)}?subject=${encodeURIComponent('Re: website enquiry')}">Reply</a><a class="btn small" href="mailto:?subject=${encodeURIComponent('Website enquiry from '+lead.name)}&amp;body=${encodeURIComponent(lead.name+' · '+lead.email+'\n\n'+lead.message)}">Prepare forward</a><form class="lead-status-form" data-lead="${esc(lead.id)}"><label class="field">Status<select name="status">${statuses.slice(1).map(value=>`<option ${value===lead.status?'selected':''}>${value}</option>`).join('')}</select></label><label class="field">Assigned to<input name="assigned" maxlength="120" value="${esc(lead.followup?.assigned||'')}"></label><label class="field">Private follow-up note<textarea name="note" maxlength="1200">${esc(lead.followup?.note||'')}</textarea></label><button class="btn small" type="submit">Save follow-up</button></form></div>${lead.history?.length?`<details><summary>Status history</summary><ul>${lead.history.map(item=>`<li>${esc(item.status)} · ${date(item.created)}</li>`).join('')}</ul></details>`:''}</article>`).join(''):'<div class="empty"><h2>No leads in this view</h2><p>Submissions to your website contact forms will appear here.</p></div>'}</section>
     <section class="panel"><h2>Website contact forms</h2><p>Share a form link or export and republish your website to add it to the Contact page.</p>${forms.map(form=>`<p><a class="text-link" href="${esc(form.url)}">${esc(form.business)} contact form →</a> <button type="button" class="btn small" data-action="toggle-site-alerts" data-site="${esc(form.id)}" data-enable="${!form.alerts}">${form.alerts?'Use inbox only':'Enable account email alerts'}</button></p>`).join('')||'<p>Create a website to get a contact form.</p>'}</section>`,'form-leads');
 }
+function ringbaImportPanel(records,money){
+ return `<section class="panel"><h2>Import a Ringba call report</h2><p>Upload a CSV exported from Ringba. Include Inbound Call ID, Call Date, Dialed #, Paid Out and Payout. SITOCAL keeps daily totals for the selected tracking number. Upload a complete report for each day you want to replace.</p>
+ ${sites.length?`<form id="ringba-import-form"><div class="grid3"><label class="field">Website<select name="siteId">${sites.map(site=>`<option value="${esc(site.id)}">${esc(site.data.business)}</option>`).join('')}</select></label><label class="field">Dialed tracking number<input name="number" type="tel" maxlength="24" required placeholder="+1…"></label><label class="field">Currency<select name="currency">${['USD','PKR','GBP','EUR','CAD','AUD'].map(code=>`<option>${code}</option>`).join('')}</select></label><label class="field">Date format for slash dates<select name="format"><option value="mdy">Month/day/year</option><option value="dmy">Day/month/year</option></select></label><label class="field">Call report CSV<input name="report" type="file" accept=".csv,text/csv" required></label></div><button class="btn small" type="submit">Preview daily totals</button></form><div id="ringba-import-preview" role="status"></div>`:'<p>Create a website before importing a call report.</p>'}
+ <h3>Imported totals</h3><p>These records are separate from manual entries to help avoid double counting.</p>${records.length?`<div class="table-scroll"><table><thead><tr><th>Website</th><th>Day</th><th>Calls</th><th>Paid calls</th><th>Payout</th></tr></thead><tbody>${records.map(row=>`<tr><td>${esc(siteTitle(row.site_id))}</td><td>${esc(row.day)}</td><td>${row.calls}</td><td>${row.paid}</td><td>${esc(money(row.cents,row.currency))}</td></tr>`).join('')}</tbody></table></div>`:'<p>No imported totals yet.</p>'}</section>`;
+}
+let pendingRingba=null;
+
 async function callEarnings(){
-  const {records}=await api('/api/workspace/calls');
+  pendingRingba=null;
+  const {records,imported}=await api('/api/workspace/calls');
   const money=(cents,currency)=>new Intl.NumberFormat(undefined,{style:'currency',currency}).format(cents/100);
   const totals=new Map();
   for(const row of records)totals.set(row.currency,(totals.get(row.currency)||0)+row.cents);
   shell(header('Call earnings','Record call counts and payouts from Ringba or another call tracking report.',refreshPage())+
     `<section class="panel"><h2>Recent recorded payouts</h2><p>${[...totals].map(([currency,cents])=>esc(money(cents,currency))).join(' · ')||'No payouts recorded'}</p><p class="section-caption">Totals cover the latest 100 manual records, grouped by currency.</p>
     ${records.length?`<div class="table-scroll"><table><thead><tr><th>Website</th><th>Date</th><th>Calls</th><th>Paid calls</th><th>Payout</th></tr></thead><tbody>${records.map(row=>`<tr><td>${esc(siteTitle(row.site_id))}</td><td>${esc(row.day)}</td><td>${row.calls}</td><td>${row.paid}</td><td>${esc(money(row.cents,row.currency))}</td></tr>`).join('')}</tbody></table></div>`:''}</section>
-    <section class="panel"><h2>Record a daily total</h2><p>Saving the same website, date and currency updates that entry.</p>${sites.length?`<form id="call-record"><div class="grid2"><label class="field">Website<select name="siteId">${sites.map(item=>`<option value="${esc(item.id)}">${esc(item.data.business)}</option>`).join('')}</select></label><label class="field">Date<input type="date" name="day" required></label><label class="field">Calls<input type="number" name="calls" min="0" step="1" required></label><label class="field">Paid calls<input type="number" name="paid" min="0" step="1" required></label><label class="field">Payout<input type="number" name="payout" min="0" step="0.01" required></label><label class="field">Currency<select name="currency">${['USD','PKR','GBP','EUR','CAD','AUD'].map(code=>`<option>${code}</option>`).join('')}</select></label></div><button class="btn primary" type="submit">Save call record</button></form>`:'<p>Create a website to start recording earnings.</p>'}</section>`,'call-earnings');
+    <section class="panel"><h2>Record a daily total</h2><p>Saving the same website, date and currency updates that entry.</p>${sites.length?`<form id="call-record"><div class="grid2"><label class="field">Website<select name="siteId">${sites.map(item=>`<option value="${esc(item.id)}">${esc(item.data.business)}</option>`).join('')}</select></label><label class="field">Date<input type="date" name="day" required></label><label class="field">Calls<input type="number" name="calls" min="0" step="1" required></label><label class="field">Paid calls<input type="number" name="paid" min="0" step="1" required></label><label class="field">Payout<input type="number" name="payout" min="0" step="0.01" required></label><label class="field">Currency<select name="currency">${['USD','PKR','GBP','EUR','CAD','AUD'].map(code=>`<option>${code}</option>`).join('')}</select></label></div><button class="btn primary" type="submit">Save call record</button></form>`:'<p>Create a website to start recording earnings.</p>'}</section>`+ringbaImportPanel(imported,money),'call-earnings');
 }
 
 const releaseNotes=[
@@ -563,6 +571,20 @@ if(form.id==='serp-checker-form'){
   try{const r=await api('/api/serp/check',{method:'POST',body:{...b,keyword:[b.service,b.city,b.region].map(part=>part.trim()).filter(Boolean).join(' ')}});result.innerHTML=checkerResults(r);}
   catch(error){result.textContent=error.message;throw error;}
 }
+if(form.id==='ringba-import-form'){
+ const file=b.report;
+ if(!file?.size||file.size>262144||!/\.csv$/i.test(file.name))throw Error('Choose a CSV under 256 KB.');
+ pendingRingba=null;
+ const preview=document.getElementById('ringba-import-preview');
+ preview.textContent='Reviewing report…';
+ const payload={siteId:b.siteId,number:b.number,currency:b.currency,format:b.format,csv:await file.text()};
+ try{
+  const {rows}=await api('/api/workspace/calls/ringba',{method:'POST',body:payload});
+  if(!preview.isConnected)return;
+  pendingRingba=payload;
+  preview.innerHTML=`<h3>Review ${esc(siteTitle(payload.siteId))}</h3><p>${rows.length} days · ${rows.reduce((sum,row)=>sum+row.calls,0)} calls · ${rows.reduce((sum,row)=>sum+row.paid,0)} paid calls</p><p>Saving replaces Ringba totals for the dates and currency in this preview. Manual entries remain separate.</p><button class="btn primary small" data-action="commit-ringba">Save imported totals</button>`;
+ }catch(error){preview.textContent=error.message;throw error;}
+}
 if(form.id==='call-record'){await api('/api/workspace/calls',{method:'POST',body:b});await callEarnings();}
 if(form.id==='create-site'){const r=await api('/api/sites',{method:'POST',body:b});location.href=href('editor','?site='+r.id);}
 if(form.id==='connector-action-form'){const el=document.getElementById('connector-result');el.innerHTML=loading('Requesting provider report…');try{const r=await api('/api/connectors/'+form.dataset.provider+'/execute',{method:'POST',body:{...b,reviewed:b.reviewed==='on'}});el.innerHTML='<pre class="result">'+esc(JSON.stringify(r,null,2))+'</pre>';}catch(error){el.textContent=error.message;}}
@@ -655,7 +677,8 @@ if(el.dataset.serptab){serpTab=el.dataset.serptab;serp();}
 if(el.dataset.editorPage!==undefined){captureEdit();pageIndex=Number(el.dataset.editorPage);activeSection=0;await editor();}
 if(el.dataset.device){document.getElementById('frame-wrap').classList.toggle('mobile',el.dataset.device==='mobile');document.querySelectorAll('[data-device]').forEach(x=>x.classList.toggle('active',x===el));}
 if(el.dataset.revision){site=await api('/api/sites/'+site.id+'/restore',{method:'POST',body:{revision:el.dataset.revision}});dirty=false;await refresh();modal.close();editor();notify('Revision restored and saved as a new version.');}
-switch(el.dataset.action){case'toggle-site-alerts':{await api('/api/sites/'+el.dataset.site+'/lead-alerts',{method:'PUT',body:{enabled:el.dataset.enable==='true'}});await formLeads();notify('Site alert preference saved.');break;}
+switch(el.dataset.action){case'commit-ringba':{if(!pendingRingba)break;el.disabled=true;try{await api('/api/workspace/calls/ringba',{method:'POST',body:{...pendingRingba,commit:true}});await callEarnings();notify('Ringba daily totals imported.');}finally{el.disabled=false;}break;}
+case'toggle-site-alerts':{await api('/api/sites/'+el.dataset.site+'/lead-alerts',{method:'PUT',body:{enabled:el.dataset.enable==='true'}});await formLeads();notify('Site alert preference saved.');break;}
 case'inspect-site-pages':{el.disabled=true;try{await api('/api/sites/'+el.dataset.site+'/search/inspect',{method:'POST',body:{}});location.href=href('indexing','?tab=jobs&site='+el.dataset.site);}finally{el.disabled=false;}break;}
 case'lookup-city':{
  const group=el.closest('details'),result=group.querySelector('[data-location-results]');
