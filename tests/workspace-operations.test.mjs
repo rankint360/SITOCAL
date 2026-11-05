@@ -19,7 +19,8 @@ test('website leads and payout records stay isolated and generation history link
     const register=await call('/api/auth/register',{method:'POST',body:{email:'test@example.com',password:'unique passphrase 12345',invite:'qa-invite-fixture'}});assert.equal(register.status,200);const cookie=register.headers.get('set-cookie').split(';')[0],auth=await register.json(),csrf=auth.csrf;
     const second=await call('/api/auth/register',{method:'POST',body:{email:'other@example.com',password:'another passphrase 12345',invite:'qa-invite-fixture'}});const other=second.headers.get('set-cookie').split(';')[0],otherAuth=await second.json();
     assert.equal((await call('/api/sites',{method:'POST',cookie,body:{business:'Test',city:'Austin'}})).status,403);
-    const create=await call('/api/sites',{method:'POST',cookie,csrf,body:{business:'Austin Flow',city:'Austin',services:'Drain cleaning'}});assert.equal(create.status,201);let site=await create.json();assert.equal(site.data.pages.length,5);
+    assert.equal((await call('/api/sites',{method:'POST',cookie,csrf,body:{business:'Invalid Origin',city:'Austin',websiteOrigin:'https://example.com/path'}})).status,400);
+    const create=await call('/api/sites',{method:'POST',cookie,csrf,body:{business:'Austin Flow',city:'Austin',services:'Drain cleaning',websiteOrigin:'https://austin-flow.pages.dev'}});assert.equal(create.status,201);let site=await create.json();assert.equal(site.data.pages.length,5);
     const list='/api/sites?library=1';
     const {sites:[listed]}=await(await call(list,{cookie})).json();
     assert.equal(listed.id,site.id);
@@ -41,6 +42,9 @@ test('website leads and payout records stay isolated and generation history link
     assert(editable.includes('data-preview-page="about"'));
     assert(editable.includes('href="'+previewUrl+'?page=about&amp;edit=1&amp;draft='+key+'"'));
     assert.match(await(await call(previewUrl+'?page=about&draft='+key,{cookie})).text(),/<title>Unsaved about title/);
+    const launchOnCreate=await(await call('/api/sites/'+site.id+'/launch',{cookie})).json();
+    assert.equal(launchOnCreate.origin,'https://austin-flow.pages.dev');
+    assert.equal(launchOnCreate.host,'');
     const publicContact='/website-contact/'+site.id;
     assert.equal((await call(publicContact)).status,200);
     assert.equal((await call('/api/workspace/leads')).status,401);

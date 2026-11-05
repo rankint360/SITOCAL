@@ -4,7 +4,7 @@ import {providerBudget,updateProviderBudget,enforceProviderBudget} from './lib/p
 import { probeSite } from './lib/launch-probe.mjs';
 import { searchLocations } from './lib/serp-locations.mjs';
 import {initAccountMail,mailReady,mailStatus,queueAccountLink,requestRecovery,verifyAccountMail,recoverPassword,setLeadAlerts,queueLeadAlert,startAccountMailWorker} from './lib/account-mail.mjs';
-import {launchPlan,saveLaunchPlan,deploymentStatus,configuredDestination} from './lib/launch.mjs';
+import {launchPlan,saveLaunchPlan,publicSiteOrigin,deploymentStatus,configuredDestination} from './lib/launch.mjs';
 import { initProfiles, accountProfile, saveProfile, publishedProfile, publishedAvatar } from './lib/account-profile.mjs';
 import { conversionFormats, inspectConversionArchive, wordpressPackage } from './lib/wp-converter.mjs';
 import {handleAdmin}from'./lib/admin.mjs';
@@ -475,7 +475,28 @@ async function handler(req,res){
       }
       return json(res,200,{sites});
     }
-    if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const provider=b.aiProvider||'openai';if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);const c=connection(user,provider);const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b,provider);return {...saveSite(user,r.site),usage:r.usage,model:r.model,provider,promptVersion:r.promptVersion};});return json(res,201,generated);}if(b.pages)return json(res,201,saveSite(user,b));return json(res,201,atomic(db,()=>{const site=saveSite(user,draftSite(b));db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(id(),user,site.id,'template-generation','completed','{}',site.created);return site;}));}
+    if(p==='/api/sites'&&req.method==='POST'){
+      checkSiteCapacity(db,user);
+      const {websiteOrigin,...input}=await body(req);
+      const origin=publicSiteOrigin(websiteOrigin);
+      const saveDraft=(data,template=false)=>atomic(db,()=>{
+        const site=saveSite(user,data);
+        if(origin)saveLaunchPlan(db,site,{origin,source:'',host:'',checked:[]});
+        if(template)db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(id(),user,site.id,'template-generation','completed','{}',site.created);
+        return site;
+      });
+      if(input.generation==='ai'){
+        const provider=input.aiProvider||'openai';
+        if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);
+        const config=connection(user,provider);
+        const generated=await job(user,null,'ai-generation',async()=>{
+          const result=await generateSite(config,input,provider);
+          return {...saveDraft(result.site),usage:result.usage,model:result.model,provider,promptVersion:result.promptVersion};
+        });
+        return json(res,201,generated);
+      }
+      return json(res,201,input.pages?saveDraft(input):saveDraft(draftSite(input),true));
+    }
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=findManifest(files,validateSite);
       if(manifest)return json(res,201,importWebsiteBundle(user,manifest,files));

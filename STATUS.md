@@ -1,3 +1,7 @@
+# Website builder domain dropdown
+
+2026-11-05. Added the requested domain endings and a Custom Domain choice to Design & Branding. The builder previews and validates the hostname, shows it in Review, and saves it atomically with the new draft as the planned HTTPS address. DNS and provider provisioning remain separate. Preserved the requested spellings. Syntax checks and all 103 tests passed, including creation with a saved origin and rejection of an invalid origin. Production rollout remains unverified.
+
 # Sitewide audit and navigation repairs
 
 2026-11-05. Verified live public entry points in the browser for sitocal.com, app, editor, wp, serp and admin. Expanded the disposable HTTP checks to cover the production-shaped hostnames (including www), public pages, asset HEAD requests, admin isolation and safe sign-in returns. Fixed saved and editable preview navigation, including unsaved draft links and page selection. Preserved project deep links through sign-in and stopped stale editor, publish and site-search links from opening a different website. Added crawler directives to workspace and recovery shells, served HEAD for page and asset checks, and clarified the homepage theme preview copy. npm run check and all 103 tests passed. Signed-in production and real Stripe, publishing and search provider actions remain outside local/fixture verification.
