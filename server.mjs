@@ -1,3 +1,4 @@
+import {customerId} from './lib/customer-id.mjs';
 import {summarizeRingba} from './lib/ringba-report.mjs';
 import {providerBudget,updateProviderBudget,enforceProviderBudget} from './lib/provider-budgets.mjs';
 import { probeSite } from './lib/launch-probe.mjs';
@@ -158,7 +159,7 @@ async function handler(req,res){
       return res.end(snapshot.csv);
     }
     if(p==='/api/plans/public'&&req.method==='GET')return json(res,200,{plans:planCatalog(db).map(({code,amount,sites,features})=>({code,amount,sites,features}))});
-    if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup','/settings'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(req.method!=='GET')throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(await readFile(path.join(root,'public/admin.html')));}
+    if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup','/settings'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(req.method!=='GET')throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public/admin.html'),'utf8');return res.end(html.replace('name="sitocal-domain" content=""','name="sitocal-domain" content="'+baseDomain+'"'));}
     if(adminHost&&!p.startsWith('/assets/')&&p!=='/api/health')throw new ProviderError('Use the customer application hostname for this endpoint',403);
     if(['GET','HEAD'].includes(req.method)&&Object.hasOwn(pageAliases,p)){res.writeHead(301,{Location:pageAliases[p]+url.search});return res.end();}
     if(p==='/serpum/features'){res.writeHead(301,{Location:'/serpum/features/'+url.search});return res.end();}
@@ -287,6 +288,18 @@ async function handler(req,res){
       return json(res,200,verifyAccountMail(db,user,(await body(req,1024)).token));
     }
     if(p==='/api/account/email/alerts'&&req.method==='PUT')return json(res,200,setLeadAlerts(db,user,(await body(req,1024)).enabled));
+    if(p==='/api/account/profile'&&req.method==='GET'){
+      const profile=accountProfile(db,user),billing=billingStatus(db,user);
+      return json(res,200,{name:profile.name,email:session.email,plan:billing.capacity.plan,
+        customerId:customerId(user,profile.name,billing.capacity.plan),
+        paymentPortalAvailable:Boolean(process.env.STRIPE_SECRET_KEY&&billing.subscription?.customer)});
+    }
+    if(p==='/api/account/profile'&&req.method==='PATCH'){
+      rate('account-settings:'+user,12);
+      const input=await body(req,2048);
+      const profile=saveProfile(db,user,{...accountProfile(db,user),name:input?.name});
+      return json(res,200,{name:profile.name});
+    }
     if(p==='/api/account/settings'&&req.method==='GET')return json(res,200,accountProfile(db,user));
     if(p==='/api/account/settings'&&req.method==='PUT'){
       rate('account-settings:'+user,12);
@@ -344,7 +357,7 @@ async function handler(req,res){
           if(db.prepare('SELECT count(*) n FROM support_messages WHERE ticket_id=?').get(ticket).n>=50)throw new ProviderError('This thread is full. Open a follow-up ticket.',409);
           db.prepare("UPDATE support_tickets SET status='open',updated=? WHERE id=?").run(now,ticket);
         }else{
-          if(!title||title.length>120||!['Builder','Editor','Publishing','Search','Billing','Other'].includes(input.area)||!['Bug','Question','Feature request'].includes(input.kind)||!['Minor','Major','Blocking'].includes(input.severity))throw new ProviderError('Enter a title and choose a report category',400);
+          if(!title||title.length>120||!['Builder','Editor','Publishing','Search','Billing','Other'].includes(input.area)||!['Bug','Question','Feature request','Message'].includes(input.kind)||!['Minor','Major','Blocking'].includes(input.severity))throw new ProviderError('Enter a title and choose a report category',400);
           if(db.prepare("SELECT count(*) n FROM support_tickets WHERE user_id=?").get(user).n>=50)throw new ProviderError('Ticket limit reached',429);
           if(input.site)ownedSite(user,String(input.site));
           ticket=id();

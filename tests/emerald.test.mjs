@@ -9,3 +9,41 @@ test('Emerald Studio fonts are bundled WOFF2 with licenses and UI-only scope',as
  for(const name of ['inter','manrope']){const css=await readFile(new URL('../public/font-'+name+'.css',import.meta.url),'utf8');const b=Buffer.from(css.match(/base64,([A-Za-z0-9+/=]+)/)[1],'base64');assert.equal(b.subarray(0,4).toString(),'wOF2');assert(css.includes('font-display:swap'));assert((await readFile(new URL('../docs/FONT-LICENSE-'+name.toUpperCase()+'.txt',import.meta.url),'utf8')).includes('OPEN FONT LICENSE'));}
  const css=await readFile(new URL('../public/emerald.css',import.meta.url),'utf8');assert(css.includes('prefers-reduced-motion'));assert(css.includes('html[data-theme=dark]'));assert(css.includes('.studio-mobile-nav'));assert(!css.includes('@import'));assert(!css.includes('https://'));
 });
+
+test('appearance shares palette and mode across workspace hosts and lets System follow the device',async()=>{
+ const {runInNewContext}=await import('node:vm');
+ const source=(await readFile(new URL('../public/appearance.js',import.meta.url),'utf8')).replaceAll('export function','function');
+ let cookie='',dark=false;
+ const open=hostname=>{
+  const html={dataset:{},style:{}};
+  const listeners={};
+  const document={
+   documentElement:html,
+   get cookie(){return cookie.split(';')[0];},
+   set cookie(value){cookie=value;},
+   querySelector:()=>({content:'fixture.example'}),
+   querySelectorAll:()=>[],
+   addEventListener:(name,callback)=>{listeners[name]=callback;}
+  };
+  const appearance=runInNewContext(source+'\n;({applyAppearance,saveAppearance})',{
+   document,window:{addEventListener(){}},location:{hostname,protocol:'https:'},
+   matchMedia:()=>({matches:dark,addEventListener(){}})
+  });
+  return {html,appearance,listeners};
+ };
+ const editor=open('editor.fixture.example');
+ editor.appearance.saveAppearance('Glass','Light');
+ assert.match(cookie,/Domain=fixture\.example/);
+ for(const host of ['fixture.example','app','wp','serp','admin']){
+  const target=open(host.includes('.')?host:host+'.fixture.example');
+  target.listeners['sitocal-account-theme']({detail:'dark'});
+  assert.equal(target.html.dataset.theme,'light');
+  assert.equal(target.html.dataset.palette,'glass');
+ }
+ editor.appearance.saveAppearance('Violet','System');
+ dark=true;
+ const admin=open('admin.fixture.example');
+ admin.appearance.applyAppearance();
+ assert.equal(admin.html.dataset.theme,'dark');
+ assert.equal(admin.html.dataset.palette,'violet');
+});

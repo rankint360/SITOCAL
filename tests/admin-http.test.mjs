@@ -30,6 +30,18 @@ test('admin isolation, bootstrap/invitations/RBAC, grants, pricing, promos, refe
  assert.equal((await call('/api/admin/view?section=users',customer)).status,401);
  assert.equal((await act({action:'users.status',user,status:'active'})).status,200);
  assert.equal((await call('/api/sites',customer)).status,200);
+ assert.equal((await call('/api/account/profile')).status,401);
+ const rename=async csrf=>fetch(origin+'/api/account/profile',{method:'PATCH',
+  headers:{Origin:origin,Cookie:customer.cookie,'Content-Type':'application/json','X-CSRF-Token':csrf},
+  body:JSON.stringify({name:'Alex Morgan'})});
+ assert.equal((await rename('incorrect')).status,403);
+ assert.equal((await rename(customer.csrf)).status,200);
+ const profile=(await call('/api/account/profile',customer)).data;
+ assert.match(profile.customerId,/^SITOCAL-ALEX-[A-F0-9]{32}-1$/);
+ assert.equal(profile.paymentPortalAvailable,false);
+ const found=(await call('/api/admin/view?section=users&q='+encodeURIComponent(profile.customerId),owner)).data.users;
+ assert.deepEqual(found.map(row=>[row.id,row.customer_id]),[[user,profile.customerId]]);
+ assert.equal((await act({action:'users.status',user:profile.customerId,status:'active'})).status,200);
  const report={title:'Editor save issue',area:'Editor',kind:'Bug',severity:'Major',message:'The edit could not be saved.'};
  const sent=await call('/api/workspace/support',customer,report);assert.equal(sent.status,201);
  const ticket=sent.data.id;
@@ -54,7 +66,16 @@ test('admin isolation, bootstrap/invitations/RBAC, grants, pricing, promos, refe
  await act({action:'users.status',user,status:'active'});r=await call('/api/auth/login',{}, {email:'customer@example.invalid',password:'fixture-customer-password'});customer=loginInfo(r);
  r=await act({action:'grants.create',user,plan:'growth',days:30,reference:'complimentary-test'});assert.equal(r.status,200,JSON.stringify(r.data));const grant=r.data.grantId;
  assert.equal((await call('/api/billing',customer)).data.capacity.limit,15);
+ const upgraded=(await call('/api/account/profile',customer)).data.customerId;
+ assert.equal(upgraded,profile.customerId.replace(/-1$/,'-3'));
  await act({action:'grants.revoke',grant});assert.equal((await call('/api/billing',customer)).data.capacity.limit,1);
+ const feature=await call('/api/workspace/support',customer,{title:'Bulk edits',area:'Editor',kind:'Feature request',severity:'Minor',message:'Please add batch editing.'});
+ assert.equal(feature.status,201);
+ const message=await call('/api/workspace/support',customer,{title:'Hello',area:'Other',kind:'Message',severity:'Minor',message:'Question for the team.'});
+ assert.equal(message.status,201);
+ const inbox=(await call('/api/admin/view?section=support',owner)).data.tickets;
+ assert(inbox.some(ticket=>ticket.id===feature.data.id&&ticket.kind==='Feature request'));
+ assert(inbox.some(ticket=>ticket.id===message.data.id&&ticket.kind==='Message'));
  r=await act({action:'plans.publish',plan:'starter',amount:1200,sites:7,features:['builder','editor'],stripePrice:''});assert.equal(r.status,200,JSON.stringify(r.data));
  const published=(await call('/api/plans/public')).data.plans.find(p=>p.code==='starter');assert.equal(published.amount,1200);assert.equal(published.sites,7);const pricing=await(await fetch(origin+'/pricing')).text();assert(pricing.includes('$12'));assert(pricing.includes('7 saved websites'));
  r=await act({action:'promotions.create',code:'FREE30',kind:'access',plan:'growth',days:30,maxUses:1,validDays:30,value:0});assert.equal(r.status,200,JSON.stringify(r.data));

@@ -225,3 +225,8 @@ html[data-palette=glass] :is(.workspace.studio-workspace,.admin-layout){backgrou
 .library-actions button[data-action=delete-library-site]{color:#b04445}
 .library-actions :is(a,button):focus-visible{outline-offset:-3px}
 @media(min-width:1160px){.library-results.list .library-card{grid-template-columns:minmax(0,1fr) minmax(160px,.8fr) minmax(270px,1.3fr);align-items:center}}
+
+.site-navigation [data-member-integrations][hidden]{display:none}
+.site-navigation .appearance-dialog .appearance-card{display:grid}
+.studio-route-account section.panel+section.panel{margin-top:18px}
+.studio-route-account code{overflow-wrap:anywhere}
