@@ -159,7 +159,7 @@ async function handler(req,res){
       return res.end(snapshot.csv);
     }
     if(p==='/api/plans/public'&&req.method==='GET')return json(res,200,{plans:planCatalog(db).map(({code,amount,sites,features})=>({code,amount,sites,features}))});
-    if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup','/settings'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(req.method!=='GET')throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public/admin.html'),'utf8');return res.end(html.replace('name="sitocal-domain" content=""','name="sitocal-domain" content="'+baseDomain+'"'));}
+    if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup','/settings'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(!['GET','HEAD'].includes(req.method))throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});const html=await readFile(path.join(root,'public/admin.html'),'utf8');return res.end(html.replace('name="sitocal-domain" content=""','name="sitocal-domain" content="'+baseDomain+'"'));}
     if(adminHost&&!p.startsWith('/assets/')&&p!=='/api/health')throw new ProviderError('Use the customer application hostname for this endpoint',403);
     if(['GET','HEAD'].includes(req.method)&&Object.hasOwn(pageAliases,p)){res.writeHead(301,{Location:pageAliases[p]+url.search});return res.end();}
     if(p==='/serpum/features'){res.writeHead(301,{Location:'/serpum/features/'+url.search});return res.end();}
@@ -530,7 +530,23 @@ async function handler(req,res){
       if(action==='revisions'&&req.method==='GET')return json(res,200,{revisions:db.prepare('SELECT id,created FROM revisions WHERE site_id=? AND user_id=? ORDER BY rowid DESC LIMIT 50').all(siteId,user)});
       if(action==='restore'&&req.method==='POST'){const b=await body(req),r=db.prepare('SELECT data FROM revisions WHERE id=? AND site_id=? AND user_id=?').get(b.revision,siteId,user);if(!r)throw new ProviderError('Revision not found',404);return json(res,200,saveSite(user,JSON.parse(r.data),siteId));}
       if(action==='draft-preview'&&req.method==='POST'){const data=validateSite(await body(req)),key=randomBytes(24).toString('hex');for(const[k,v]of draftPreviews)if(v.expires<Date.now())draftPreviews.delete(k);if(draftPreviews.size>500)draftPreviews.delete(draftPreviews.keys().next().value);draftPreviews.set(key,{user,siteId,data,expires:Date.now()+600000});return json(res,200,{key});}
-      if(action==='preview'&&req.method==='GET'){const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);const data=cached?.data||site.data;const page=data.pages.find(x=>x.slug===url.searchParams.get('page'))||data.pages[0];res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});return res.end(renderPage(data,page,url.searchParams.get('edit')==='1',Object.fromEntries(websiteMedia(siteId).map(image=>[image.id,'data:'+image.media+';base64,'+image.bytes.toString('base64')]))));}
+      if(action==='preview'&&req.method==='GET'){
+        const draft=url.searchParams.get('draft'),cached=draft?draftPreviews.get(draft):null;
+        if(draft&&(!cached||cached.user!==user||cached.siteId!==siteId||cached.expires<Date.now()))throw new ProviderError('Preview expired. Apply changes again.',404);
+        const data=cached?.data||site.data,requested=url.searchParams.get('page');
+        const page=requested?data.pages.find(item=>item.slug===requested):data.pages.find(item=>item.slug==='home')||data.pages[0];
+        if(!page)throw new ProviderError('Preview page not found',404);
+        const editable=url.searchParams.get('edit')==='1';
+        const previewLink=slug=>{
+          const query=new URLSearchParams({page:slug});
+          if(editable)query.set('edit','1');
+          if(draft)query.set('draft',draft);
+          return '/api/sites/'+siteId+'/preview?'+query;
+        };
+        const images=Object.fromEntries(websiteMedia(siteId).map(image=>[image.id,'data:'+image.media+';base64,'+image.bytes.toString('base64')]));
+        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'",'X-Robots-Tag':'noindex, nofollow'});
+        return res.end(renderPage(data,page,editable,images,previewLink));
+      }
       if((action==='export'||action==='convert')&&req.method==='GET'){const files=action==='export'?staticFiles(site.data,contactFormUrl(site.id),launchPlan(db,site).origin,websiteMedia(site.id)):converterFiles(site.data,url.searchParams.get('format'));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="${slug(site.data.business)}-${action}.zip"`});return res.end(zip(files));}
       if(action==='search/inspect'&&req.method==='POST'){
         assertAccess(db,user,'indexing');rate('site-index-inspection:'+user,5);
@@ -668,7 +684,7 @@ async function handler(req,res){
       return json(res,200,await job(user,null,'domain-search',async()=>{const r=await request(`https://api.cloudflare.com/client/v4/accounts/${c.account}/registrar/domain-check`,{method:'POST',headers:{Authorization:`Bearer ${c.token}`,'Content-Type':'application/json'},body:{domains:[domain]}});if(r.success===false)throw new ProviderError('Registrar search was rejected. Check API access.');return {provider:'Cloudflare Registrar',checkedAt:new Date().toISOString(),data:r.result,note:'Availability and prices are provisional; no domain purchased.'};}));
     }
     if(p.startsWith('/api/'))throw new ProviderError('Endpoint not found',404);
-    if(req.method!=='GET')throw new ProviderError('Method not allowed',405);
+    if(!['GET','HEAD'].includes(req.method))throw new ProviderError('Method not allowed',405);
     const files={'/assets/appearance.js':['appearance.js','text/javascript'],'/assets/coverage.js':['coverage.js','text/javascript'],'/assets/admin.js':['admin.js','text/javascript'],'/assets/admin.css':['admin.css','text/css'],'/assets/page-routes.js':['page-routes.js','text/javascript'],'/assets/emerald.css':['emerald.css','text/css'],'/assets/font-inter.css':['font-inter.css','text/css'],'/assets/font-manrope.css':['font-manrope.css','text/css'],'/assets/serpum-features.js':['serpum-features.js','text/javascript'],'/assets/serpum.js':['serpum.js','text/javascript'],'/assets/serpum-data.js':['serpum-data.js','text/javascript'],'/assets/serpum.css':['serpum.css','text/css'],'/assets/navigation.js':['navigation.js','text/javascript'],'/assets/style.css':['style.css','text/css'],'/assets/fieldwork.css':['fieldwork.css','text/css'],'/assets/landing.css':['landing.css','text/css'],'/assets/marketing.css':['marketing.css','text/css'],'/assets/marketing.js':['marketing.js','text/javascript'],'/assets/tools.js':['tools.js','text/javascript'],'/assets/auth.js':['auth.js','text/javascript'],'/assets/product-landings.js':['product-landings.js','text/javascript'],'/assets/auth.css':['auth.css','text/css'],'/assets/products.css':['products.css','text/css'],'/assets/policies.js':['policies.js','text/javascript'],'/assets/app.js':['app.js','text/javascript'],...Object.fromEntries(['logo','logo-dark','icon','icon-dark'].map(name=>['/assets/brand/'+name+'.svg',['brand/'+name+'.svg','image/svg+xml']]))};
     const visual=p.match(/^\/assets\/(vendors|previews)\/([a-z0-9-]+)\.svg$/);if(visual){const file=path.join(root,'public',visual[1],visual[2]+'.svg');try{const data=await readFile(file);res.setHeader('Content-Security-Policy',"default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(data);}catch{throw new ProviderError('Asset not found',404);}}
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'");
@@ -678,7 +694,7 @@ async function handler(req,res){
     const serpHome=(baseDomain&&hostname==='serp.'+baseDomain&&p==='/')||p==='/serp',indexerHome=p==='/google-indexer';
     const publicHome=p==='/'&&(!baseDomain||hostname===baseDomain||hostname==='www.'+baseDomain),publicRoute=publicRoutes.includes(p.slice(1));
     const privateTool=Boolean(user&&(['/api-mcp','/google-indexer'].includes(p)||serpHome));
-    if(privateTool||['/login','/register'].includes(p))entry=entry.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
+    if(privateTool||['/login','/register','/recover'].includes(p)||(!serpHome&&!publicHome&&!publicRoute))entry=entry.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>');
     if(!privateTool&&(serpHome||indexerHome||publicHome||publicRoute)){
       const production=Boolean(baseDomain&&(hostname===baseDomain||hostname.endsWith('.'+baseDomain)));
       const href=(name,query='')=>pageHref(name,{baseDomain,hostname,signedIn:Boolean(user)},query);
