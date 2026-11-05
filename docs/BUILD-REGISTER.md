@@ -1,3 +1,7 @@
+# Eight-step website builder
+
+2026-11-05. Expanded the builder with separate location, blog, keyword, branding, review and generation steps. Location and article drafts are included in static exports. The builder saves project and keyword details and shows a completion dialog after a successful save. AI setup suggestions, provider cost estimates, tracking number provisioning and detailed theme gallery remain pending.
+
 # Coverage explorer layout
 
 Reordered Coverage Intelligence around the explorer, payout metrics, leading offers, payout models, ZIP geography, a usage guide and FAQs. The current snapshot supplies all numerical highlights. Three focused tests passed locally.

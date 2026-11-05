@@ -62,10 +62,13 @@ function newSite(){location.href=href('create-website');}
 async function builder(){
   await loadEditorPrefs();
   const capacity = await api('/api/billing').then(result=>result.capacity).catch(()=>null);
-  const titles = ['Business details','Services & content','Design & generation','Review'];
-  shell(header('Create your business website','Build a focused local website in four steps.')+`<div class="panel builder-capacity"><strong>Saved website allowance</strong> ${capacity ? `${capacity.used} of ${capacity.limit} used` : 'Unavailable'} · <a href="${href('billing')}">View plans</a></div>
+  const titles = ['Basic information','Services','Locations','Blog titles','Keyword research','Design & branding','Review','Generate website'];
+  shell(header('Create your business website','Plan your pages, review the details and generate a private website draft.')+`<div class="panel builder-capacity"><strong>Saved website allowance</strong> ${capacity ? `${capacity.used} of ${capacity.limit} used` : 'Unavailable'} · <a href="${href('billing')}">View plans</a></div>
   <ol class="builder-progress" aria-label="Builder progress">${titles.map(title=>`<li>${title}</li>`).join('')}</ol>
-  <form id="create-site" class="panel"><section data-builder-step ><h2>Business details</h2><div class="grid2"><label class="field">Business name<input name="business" maxlength="120" placeholder="Austin Flow Plumbing" required></label><label class="field">Service area<input name="city" maxlength="120" placeholder="Austin, Texas" required></label></div><div class="grid2"><label class="field">Public phone (optional)<input name="phone" maxlength="60" type="tel"></label><label class="field">Public email (optional)<input name="email" maxlength="150" type="email"></label></div></section><section data-builder-step hidden><h2>Services & content</h2><label class="field">Services, separated by commas<input name="services" maxlength="1000" placeholder="Drain cleaning, Water heater repair" required><div class="hint">Home, About, Services, Contact and a detailed page per service. Up to 8 services.</div></label><label class="field">About your business (optional)<textarea name="businessBrief" maxlength="2000" rows="4" placeholder="Describe what you do, who you serve and your approach. Include only facts you can verify."></textarea><div class="hint">Used on your Home and About pages. No invented reviews, prices or qualifications.</div></label></section><section data-builder-step hidden><h2>Design & generation</h2><div class="grid2"><label class="field">Website style<select name="theme"><option value="orchard">Orchard · Forest & ivory</option><option value="clay">Clay · Warm & grounded</option><option value="slate">Slate · Crisp & confident</option></select></label><label class="field">Accent color<input name="accent" type="color" value="#196747"></label></div><label class="field">Generation mode<select name="generation"><option value="template">Template draft · No API required</option><option value="ai">AI draft · Connected API account required</option></select><div class="hint">AI mode sends your brief to the selected provider and uses your API credits.</div></label><label class="field">AI provider (AI mode only)<select name="aiProvider">${[["openrouter","OpenRouter"],["openai","OpenAI"],["claude","Claude AI"],["gemini","Google Gemini"],["grok","Grok AI"]].map(([key,title])=>`<option value="${key}" ${key===(editorPrefs.aiProvider||"openai")?"selected":""}>${title}${connections.includes(key)?"":" — configure in Integrations"}</option>`).join("")}</select></label></section><section data-builder-step hidden><h2>Review</h2><div id="builder-summary"></div><p>Review your business details. Your website opens in the editor as a private draft.</p></section>
+  <form id="create-site" class="panel"><section data-builder-step ><h2>Basic information</h2><div class="grid2"><label class="field">Project name<input name="projectName" maxlength="120"></label><label class="field">Business niche<input name="niche" maxlength="100"></label><label class="field">Country<input name="country" maxlength="80"></label><label class="field">State or region<input name="region" maxlength="80"></label></div><label class="field">Secondary keyword<input name="secondaryKeyword" maxlength="120"></label><label class="field">Public business address<input name="address" maxlength="200"></label><div class="grid2"><label class="field">Business name<input name="business" maxlength="120" placeholder="Austin Flow Plumbing" required></label><label class="field">Service area<input name="city" maxlength="120" placeholder="Austin, Texas" required></label></div><div class="grid2"><label class="field">Public phone (optional)<input name="phone" maxlength="60" type="tel"></label><label class="field">Public email (optional)<input name="email" maxlength="150" type="email"></label></div></section><section data-builder-step hidden><h2>Services</h2><label class="field">Services, separated by commas<input name="services" maxlength="1000" placeholder="Drain cleaning, Water heater repair" required><div class="hint">Home, About, Services, Contact and a detailed page per service. Up to 8 services.</div></label><label class="field">About your business (optional)<textarea name="businessBrief" maxlength="2000" rows="4" placeholder="Describe what you do, who you serve and your approach. Include only facts you can verify."></textarea><div class="hint">Used on your Home and About pages. No invented reviews, prices or qualifications.</div></label></section><section data-builder-step hidden><h2>Service locations</h2><p>Choose areas you actually serve. Each entry adds a location page.</p><label class="field">Location strategy<select name="locationStrategy"><option>Neighborhoods</option><option>Nearby cities</option></select></label><label class="field">Locations (up to 8)<textarea name="locations" maxlength="1000" placeholder="One location per line or comma-separated"></textarea></label></section>
+<section data-builder-step hidden><h2>Blog titles</h2><p>Add up to six titles for editable article drafts, or continue without blogs.</p><label class="field">Blog titles<textarea name="blogTitles" maxlength="1000" placeholder="One title per line"></textarea></label></section>
+<section data-builder-step hidden><h2>Keyword research</h2><p>Review suggested targets. Check demand and competition in SERP Checker.</p><label class="field">Page targets<textarea name="keywordTargets" rows="8" maxlength="6000"></textarea></label><a href="${href('serp-checker')}" target="_blank" rel="noopener">Open SERP Checker</a></section>
+<section data-builder-step hidden><h2>Design & branding</h2><div class="grid2"><label class="field">Website style<select name="theme"><option value="orchard">Orchard</option><option value="clay">Clay</option><option value="slate">Slate</option><option value="forge">Forge · Trades</option><option value="harbor">Harbor · Plumbing</option><option value="canopy">Canopy · Landscaping</option><option value="volt">Volt · Electrical</option><option value="restore">Restore · Restoration</option><option value="summit">Summit · Roofing</option><option value="bloom">Bloom · Cleaning</option><option value="thermal">Thermal · HVAC</option><option value="civic">Civic · Professional services</option></select></label><label class="field">Accent color<input name="accent" type="color" value="#196747"></label></div><label class="mk-consent"><input type="checkbox" name="referralDisclaimer"> Include a service referral disclaimer</label></section><section data-builder-step hidden><h2>Review</h2><div id="builder-summary"></div><p>Review your business details. Your website will be saved as a private draft.</p></section><section data-builder-step hidden><h2>Ready to generate</h2><p>Create editable pages in your chosen theme. Review the draft before downloading or publishing.</p><label class="field">Generation mode<select name="generation"><option value="template">Template draft · No API required</option><option value="ai">AI draft · Connected API account required</option></select><div class="hint">AI mode sends your brief to the selected provider and uses your API credits.</div></label><label class="field">AI provider (AI mode only)<select name="aiProvider">${[["openrouter","OpenRouter"],["openai","OpenAI"],["claude","Claude AI"],["gemini","Google Gemini"],["grok","Grok AI"]].map(([key,title])=>`<option value="${key}" ${key===(editorPrefs.aiProvider||"openai")?"selected":""}>${title}${connections.includes(key)?"":" — configure in Integrations"}</option>`).join("")}</select></label><p id="builder-job-status" role="status"></p></section>
   <div class="form-actions"><button type="button" class="btn" id="builder-back">Back</button><button type="button" class="btn primary" id="builder-next">Next</button><button type="submit" class="btn primary" id="builder-submit" hidden>Create website draft</button></div></form>`,'create-website');
   const form = document.getElementById('create-site');
   try{
@@ -82,6 +85,7 @@ async function builder(){
   const next = document.getElementById('builder-next');
   const submit = document.getElementById('builder-submit');
   let step = 0;
+  const lastStep = panels.length - 1;
   function show(focus = true){
     panels.forEach((panel,index)=>{panel.hidden=index!==step;});
     document.querySelectorAll('.builder-progress li').forEach((item,index)=>{
@@ -89,13 +93,18 @@ async function builder(){
       else item.removeAttribute('aria-current');
     });
     back.disabled=step===0;
-    next.hidden=step===3;
-    submit.hidden=step!==3;
+    next.hidden=step===lastStep;
+    submit.hidden=step!==lastStep;
     submit.disabled=Boolean(capacity && capacity.used>=capacity.limit);
-    if(step===3){
+    if(titles[step]==='Review'){
       const fields=new FormData(form);
-      document.getElementById('builder-summary').innerHTML=`<dl>${[['Business','business'],['Service area','city'],['Services','services'],['Public phone','phone'],['Public email','email'],['Style','theme'],['Generation','generation']].map(([label,key])=>`<dt>${label}</dt><dd>${esc(fields.get(key)||'—')}</dd>`).join('')}</dl>`;
+      document.getElementById('builder-summary').innerHTML=`<dl>${[['Business','business'],['Service area','city'],['Services','services'],['Locations','locations'],['Blog titles','blogTitles'],['Page targets','keywordTargets'],['Project','projectName'],['Niche','niche'],['Country','country'],['Region','region'],['Secondary keyword','secondaryKeyword'],['Public address','address'],['Public phone','phone'],['Public email','email'],['Style','theme'],['Generation','generation']].map(([label,key])=>`<dt>${label}</dt><dd>${esc(fields.get(key)||'—')}</dd>`).join('')}</dl>`;
     }
+    if(titles[step]==='Keyword research'&&!form.elements.keywordTargets.value){
+      const terms=[form.elements.niche.value||form.elements.business.value,...form.elements.services.value.split(',')];
+      form.elements.keywordTargets.value=terms.map(term=>term.trim()).filter(Boolean).map(term=>term+' in '+form.elements.city.value.trim()).join('\n');
+    }
+    next.textContent='Continue to '+(titles[step+1]||'generation');
     const heading=panels[step].querySelector('h2');
     heading.tabIndex=-1;
     if(focus)heading.focus();
@@ -108,7 +117,7 @@ async function builder(){
   };
   back.onclick=()=>{step--;show();};
   form.addEventListener('submit',event=>{
-    if(step!==3){event.preventDefault();event.stopPropagation();next.click();}
+    if(step!==lastStep){event.preventDefault();event.stopPropagation();next.click();}
   });
   show(false);
   dialog(`<h2>Choose what you’re building</h2><div class="builder-scopes"><button class="btn primary" type="button" data-builder-local>Local business website</button><div><strong>Regional coverage</strong><p>Coming later</p></div><div><strong>Nationwide coverage</strong><p>Coming later</p></div></div><p>Start with one service area and a dedicated page for each service.</p>`);
@@ -739,7 +748,16 @@ if(form.id==='ringba-import-form'){
  }catch(error){preview.textContent=error.message;throw error;}
 }
 if(form.id==='call-record'){await api('/api/workspace/calls',{method:'POST',body:b});await callEarnings();}
-if(form.id==='create-site'){const r=await api('/api/sites',{method:'POST',body:b});location.href=href('editor','?site='+r.id);}
+if(form.id==='create-site'){
+ const status=document.getElementById('builder-job-status');
+ status.textContent='Generating and saving your website…';
+ try{
+  const r=await api('/api/sites',{method:'POST',body:b});
+  status.textContent='Website saved.';
+  submit.hidden=true;form.querySelector('#builder-back').disabled=true;
+  dialog(`<h2>Website generated</h2><p>Your private draft is saved.</p><div class="row"><a class="btn primary" href="${href('editor','?site='+r.id)}">Open editor</a><a class="btn" href="${href('my-websites')}">My websites</a><a class="btn" href="${href('app')}">Dashboard</a></div>`);
+ }catch(error){status.textContent=error.message;throw error;}
+}
 if(form.id==='connector-action-form'){const el=document.getElementById('connector-result');el.innerHTML=loading('Requesting provider report…');try{const r=await api('/api/connectors/'+form.dataset.provider+'/execute',{method:'POST',body:{...b,reviewed:b.reviewed==='on'}});el.innerHTML='<pre class="result">'+esc(JSON.stringify(r,null,2))+'</pre>';}catch(error){el.textContent=error.message;}}
 if(form.id==='lovable-handoff-form'){const url='https://lovable.dev/#prompt='+encodeURIComponent(b.prompt);document.getElementById('lovable-handoff-result').innerHTML='<a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">Review prompt in Lovable ↗</a>';}
 if(form.id==='recovery-request'){
