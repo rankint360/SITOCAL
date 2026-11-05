@@ -96,7 +96,14 @@ export function initCoverage(){
   get('file-status').textContent=label;
   const rankings=coverageGroups(rows,'national').sort((a,b)=>b.payout-a.payout);
   const stats=get('snapshot-stats');
-  stats.textContent=new Set(rows.map(row=>row.niche)).size+' offers · '+new Set(rows.map(row=>row.zip)).size.toLocaleString()+' ZIPs · '+rows.length.toLocaleString()+' payout records';
+  const range=rankings.reduce(([low,high],item)=>[Math.min(low,item.range[0]),Math.max(high,item.range[1])],[Infinity,0]);
+  const metrics=[
+   ['Offers tracked',new Set(rows.map(row=>row.niche)).size],
+   ['ZIP codes covered',new Set(rows.map(row=>row.zip)).size.toLocaleString()],
+   ['Reported payout range',range.map(money).join('–')]
+  ];
+  stats.innerHTML=metrics.map(([title,value])=>'<article><small>'+title+'</small><strong>'+value+'</strong></article>').join('');
+  get('highlights').innerHTML=rankings.slice(0,3).map((item,index)=>'<article><small>0'+(index+1)+' · '+(item.model==='cpl'?'Cost per lead':'Pay per call')+'</small><strong>'+money(item.payout)+'</strong><span>'+esc(item.niche)+'</span><small>'+item.count.toLocaleString()+' ZIPs</small></article>').join('');
   get('rankings').innerHTML='<div class="table-scroll"><table><thead><tr><th>Offer</th><th>Model</th><th>ZIPs</th><th>Median</th><th>Range</th></tr></thead><tbody>'+rankings.map(item=>'<tr><td>'+esc(item.niche)+'</td><td>'+(item.model==='cpl'?'Cost per lead':'Pay per call')+'</td><td>'+item.count+'</td><td>'+money(item.payout)+'</td><td>'+money(item.range[0])+'–'+money(item.range[1])+'</td></tr>').join('')+'</tbody></table></div>';
   page=0;
   render();

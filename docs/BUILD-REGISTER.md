@@ -1,3 +1,7 @@
+# Coverage explorer layout
+
+Reordered Coverage Intelligence around the explorer, payout metrics, leading offers, payout models, ZIP geography, a usage guide and FAQs. The current snapshot supplies all numerical highlights. Three focused tests passed locally.
+
 # Admin-published LeadSmart coverage
 
 Added an owner-only CSV publisher and a persistent public snapshot. The explorer loads published data automatically and shows offer rankings, source guidance and FAQs. The manual CSV preview remains available. No automatic upstream feed is configured.

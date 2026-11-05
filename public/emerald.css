@@ -172,3 +172,22 @@ html[data-palette=glass] :is(.workspace.studio-workspace,.admin-layout){backgrou
  :is(.studio-sidebar,.studio-mobile-nav,.admin-sidebar) .studio-nav-icon svg{transition:none}
  :is(.studio-sidebar,.studio-mobile-nav,.admin-sidebar) :is(a,button):is(:hover,:focus-visible) .studio-nav-icon svg{transform:none}
 }
+
+/* Public coverage explorer */
+#leadsmart-coverage{padding-top:0}
+.coverage-explorer{display:grid;gap:18px}
+.coverage-explorer>.panel{padding:clamp(16px,3vw,32px)}
+.coverage-explorer nav[aria-label="Coverage views"]{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:15px}
+.coverage-explorer nav [aria-pressed=true]{background:var(--green);color:var(--ivory);border-color:var(--green)}
+.coverage-source{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:.86rem;margin-bottom:16px}
+.coverage-source p{margin:6px 0}
+.coverage-explorer form details{padding:12px 0}
+.coverage-story{padding:clamp(22px,4vw,48px) 0;border-top:1px solid var(--line)}
+.coverage-story h2{margin:.2em 0}
+.coverage-story>p:not(.eyebrow){max-width:70ch;color:var(--muted)}
+.coverage-metrics,.coverage-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px;margin:20px 0}
+.coverage-metrics article,.coverage-guide article{display:grid;align-content:start;gap:4px;padding:20px;border:1px solid var(--line);background:var(--ivory);border-radius:14px}
+.coverage-metrics strong{color:var(--green);font-size:clamp(1.15rem,2.3vw,1.75rem)}
+.coverage-metrics small{color:var(--muted)}
+.coverage-story details{padding:15px 0;border-bottom:1px solid var(--line)}
+.coverage-story summary{font-weight:650;cursor:pointer}
