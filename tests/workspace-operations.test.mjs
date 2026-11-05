@@ -20,6 +20,12 @@ test('website leads and payout records stay isolated and generation history link
     const second=await call('/api/auth/register',{method:'POST',body:{email:'other@example.com',password:'another passphrase 12345',invite:'qa-invite-fixture'}});const other=second.headers.get('set-cookie').split(';')[0],otherAuth=await second.json();
     assert.equal((await call('/api/sites',{method:'POST',cookie,body:{business:'Test',city:'Austin'}})).status,403);
     const create=await call('/api/sites',{method:'POST',cookie,csrf,body:{business:'Austin Flow',city:'Austin',services:'Drain cleaning'}});assert.equal(create.status,201);let site=await create.json();assert.equal(site.data.pages.length,5);
+    const list='/api/sites?library=1';
+    const {sites:[listed]}=await(await call(list,{cookie})).json();
+    assert.equal(listed.id,site.id);
+    assert.deepEqual(listed.library,{scope:'city',build:'Template',cost:0,deployed:false,submitted:false});
+    assert.deepEqual((await(await call(list,{cookie:other})).json()).sites,[]);
+    assert.equal((await call('/api/sites/'+site.id,{method:'DELETE',cookie:other,csrf:otherAuth.csrf})).status,404);
     const publicContact='/website-contact/'+site.id;
     assert.equal((await call(publicContact)).status,200);
     assert.equal((await call('/api/workspace/leads')).status,401);

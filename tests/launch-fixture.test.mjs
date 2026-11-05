@@ -46,7 +46,12 @@ test('draft to deployment, lead, Search Console and rank tracking with provider 
   assert.equal(limited.status,429);
   await call(base+'/launch','PUT',{source:'',host:'netlify',origin:'https://launch.example.invalid',checked:[],revision:site.updated});
   const [published]=await call(base+'/publish','POST',{source:'',host:'netlify',reviewed:true});
+  const [pendingLibrary]=await call('/api/sites?library=1');
+  assert.deepEqual(pendingLibrary.sites[0].library,{scope:'city',build:'Template',cost:0,deployed:false,submitted:true});
   const [deployment]=await call(base+'/deployment-status','POST',{jobId:published.jobId});
+  const [readyLibrary]=await call('/api/sites?library=1');
+  assert.equal(readyLibrary.sites[0].id,site.id);
+  assert.equal(readyLibrary.sites[0].library.deployed,true);
   assert.equal(deployment.state,'ready');
   const enquiry=await fetch(origin+'/website-contact/'+site.id,{method:'POST',redirect:'manual',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({name:'Fixture lead',email:'lead@example.invalid',message:'Please quote drain cleaning.'})});
   assert.equal(enquiry.status,303);

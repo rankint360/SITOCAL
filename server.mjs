@@ -432,7 +432,36 @@ async function handler(req,res){
       db.prepare('INSERT INTO website_call_records VALUES(?,?,?,?,?,?,?) ON CONFLICT(site_id,day,currency) DO UPDATE SET calls=excluded.calls,paid=excluded.paid,cents=excluded.cents').run(id(),input.siteId,day,calls,paid,cents,currency);
       return json(res,200,{ok:true});
     }
-    if(p==='/api/sites'&&req.method==='GET')return json(res,200,{sites:db.prepare('SELECT * FROM sites WHERE user_id=? ORDER BY updated DESC').all(user).map(s=>({...s,data:JSON.parse(s.data)}))});
+    if(p==='/api/sites'&&req.method==='GET'){
+      const sites=db.prepare('SELECT * FROM sites WHERE user_id=? ORDER BY updated DESC').all(user)
+        .map(site=>({...site,data:JSON.parse(site.data)}));
+      if(url.searchParams.get('library')==='1'){
+        const metadata=new Map(sites.map(site=>[site.id,{scope:'other',build:null,cost:null,deployed:false,submitted:false}]));
+        const history=db.prepare(`
+          SELECT kind,coalesce(site_id,json_extract(result,'$.id')) AS project,
+            json_extract(result,'$.deployment.provider') AS host,
+            json_extract(result,'$.deploymentStatus.state') AS state,
+            json_extract(result,'$.usage.cost') AS cost
+          FROM jobs WHERE user_id=? AND status='completed'
+            AND kind IN ('ai-generation','template-generation','publish')
+          ORDER BY rowid DESC
+        `).all(user);
+        for(const job of history){
+          const info=metadata.get(job.project);
+          if(!info)continue;
+          if(job.kind==='publish'){
+            if(job.host && job.state!=='failed')info.submitted=true;
+            if(job.host && job.state==='ready')info.deployed=true;
+          }else if(!info.build){
+            info.scope='city';
+            info.build=job.kind==='template-generation'?'Template':'AI';
+            info.cost=job.kind==='template-generation'?0:Number.isFinite(job.cost)&&job.cost>=0?job.cost:null;
+          }
+        }
+        for(const site of sites)site.library=metadata.get(site.id);
+      }
+      return json(res,200,{sites});
+    }
     if(p==='/api/sites'&&req.method==='POST'){checkSiteCapacity(db,user);const b=await body(req);if(b.generation==='ai'){const provider=b.aiProvider||'openai';if(!aiProviders.includes(provider))throw new ProviderError('Unknown AI provider',400);const c=connection(user,provider);const generated=await job(user,null,'ai-generation',async()=>{const r=await generateSite(c,b,provider);return {...saveSite(user,r.site),usage:r.usage,model:r.model,provider,promptVersion:r.promptVersion};});return json(res,201,generated);}if(b.pages)return json(res,201,saveSite(user,b));return json(res,201,atomic(db,()=>{const site=saveSite(user,draftSite(b));db.prepare('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)').run(id(),user,site.id,'template-generation','completed','{}',site.created);return site;}));}
     if(p==='/api/import'&&req.method==='POST'){
       const files=unzip(await body(req)),manifest=findManifest(files,validateSite);

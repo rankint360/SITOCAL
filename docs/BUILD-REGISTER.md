@@ -1,34 +1,34 @@
+# My Websites project library
+
+2026-11-05. Added a responsive My Websites dashboard with real site and page totals, provider-confirmed deployment counts, scope filters, search, grid/list views and project cards. Cards link to the editor, publish review, saved homepage preview, Add Page, image library and ZIP export. Regenerate prefills a new builder run from the saved brief. Delete uses the account-owned site endpoint after confirmation. Current builder outputs are citywide and imports without build history are unclassified. Statewide/nationwide generation and AI image generation are pending. AI spend appears only when recorded by the provider. npm run check and all 102 fixture tests passed, including account isolation and the transition from hosting submission to provider-confirmed ready. Production UI verification remains pending.
+
 # Eight-step website builder
 
 2026-11-05. Expanded the builder with separate location, blog, keyword, branding, review and generation steps. Location and article drafts are included in static exports. The builder saves project and keyword details and shows a completion dialog after a successful save. AI setup suggestions, provider cost estimates, tracking number provisioning and detailed theme gallery remain pending.
-
-# Coverage explorer layout
-
-Reordered Coverage Intelligence around the explorer, payout metrics, leading offers, payout models, ZIP geography, a usage guide and FAQs. The current snapshot supplies all numerical highlights. Three focused tests passed locally.
 
 # Admin-published LeadSmart coverage
 
 Added an owner-only CSV publisher and a persistent public snapshot. The explorer loads published data automatically and shows offer rankings, source guidance and FAQs. The manual CSV preview remains available. No automatic upstream feed is configured.
 
-# Sidebar navigation icons
+# Ready-made website themes
 
-Added route-specific icons for signed-in desktop, mobile and admin navigation. Hover and keyboard focus animate icons when reduced motion is off. Focused Emerald Studio tests passed locally.
+Expanded the builder to twelve selectable presets. The saved theme drives the shared website renderer across pages and static exports. Local verification only.
 
 # Market research and website operations
 
-Added saved market estimates, pasted keyword grouping, saved organic SERP comparison and builder prefill. Added image library usage and original previews, HTTPS probe totals and per-site form enquiry totals. Provider keyword/SERP retrieval, video, and cross-channel attribution remain pending. Syntax and focused Emerald Studio tests passed locally.
+Added browser-saved market estimates, pasted keyword grouping, saved organic SERP comparison and builder prefill. Added image library usage and original previews, HTTPS probe totals and per-site form enquiry totals for the current view. SEO provider keyword/SERP retrieval, video, and cross-channel attribution remain pending. Syntax and focused Emerald tests passed.
 
-# Workspace quick tools
+# Keyword planner and research handoff
 
-Added a launch checklist with browser-saved progress, a nine-step walkthrough, a New Website shortcut and a release notes preview. Syntax and focused Emerald Studio tests passed locally.
+Added pasted-keyword deduplication and editable service page suggestions, a side-by-side recent SERP layout, and one-time builder prefill for city and service names. Provider keyword collection, map results and detailed briefs remain pending.
+
+# Market opportunities, first increment
+
+Added a browser-saved comparison for pay per call, pay per lead and monthly rent, with manually entered evidence and three monthly scenarios. Syntax and focused Emerald tests passed. Provider evidence and the remaining roadmap features are pending.
 
 # Workspace appearance customizer
 
 2026-11-03. Added eight palette presets with dashboard previews, including Glass, Ocean and Rose and System, Light and Dark modes to the workspace and admin headers. Browser preferences share a SITOCAL-domain cookie. Production verification remains pending.
-
-# Session 077 — Native LeadSmart CSV import
-
-2026-11-03. Coverage Intelligence accepts LeadSmart exports in the browser and separates duration and CPL. Rows without usable location data and payout values expressed as ranges are excluded. Validated 233,963 payout records across 39,861 ZIPs using the supplied export. Syntax checks and all 102 tests passed. Importer code shipped to main in f9e2012. Production deployment verification is pending. Next action is to confirm the deployed asset and obtain an approved recurring source for automatic refresh.
 
 # Session 076 — LeadSmart coverage explorer
 
@@ -434,3 +434,4 @@ Session034 integrity correction: server.mjs upload at279b2ca was truncated in to
 
 
 035 / 2026-10-29: User explicitly requested merge PR1 and audit leftover work/old names. Marked draft ready and merged expected head5635975 into main commit4b2924639c56192967e81a1e61d447fb0152f79d. No other open PRs; comparison confirms feature commits fully included. Node HTTPS health verified HTTP200/version0.1.4 at sitocal.com and sitocal.onrender.com; root/app/editor/wp/serp and landing CSS/logo assets served200. Native PowerShell SSL failed locally; Node trusted HTTPS succeeded. No authenticated live test performed. Legacy audit outputs/LEGACY-NAME-AUDIT.md: no old-named repository paths; internal Sitocal DB/cookie/manifest/editor/meta/schema/package/blueprint/test labels plus WordPress author metadata remain; historical Sitocal URLs in docs only. No blind data/session/import renames. Synchronizing remaining local handoff notes/research docs to main; no unmerged app source remains. Prior27 passing tests apply to unchanged runtime. No old repository accessed/written.
+

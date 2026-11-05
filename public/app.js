@@ -71,10 +71,19 @@ async function builder(){
 <section data-builder-step hidden><h2>Design & branding</h2><div class="grid2"><label class="field">Website style<select name="theme"><option value="orchard">Orchard</option><option value="clay">Clay</option><option value="slate">Slate</option><option value="forge">Forge · Trades</option><option value="harbor">Harbor · Plumbing</option><option value="canopy">Canopy · Landscaping</option><option value="volt">Volt · Electrical</option><option value="restore">Restore · Restoration</option><option value="summit">Summit · Roofing</option><option value="bloom">Bloom · Cleaning</option><option value="thermal">Thermal · HVAC</option><option value="civic">Civic · Professional services</option></select></label><label class="field">Accent color<input name="accent" type="color" value="#196747"></label></div><label class="mk-consent"><input type="checkbox" name="referralDisclaimer"> Include a service referral disclaimer</label></section><section data-builder-step hidden><h2>Review</h2><div id="builder-summary"></div><p>Review your business details. Your website will be saved as a private draft.</p></section><section data-builder-step hidden><h2>Ready to generate</h2><p>Create editable pages in your chosen theme. Review the draft before downloading or publishing.</p><label class="field">Generation mode<select name="generation"><option value="template">Template draft · No API required</option><option value="ai">AI draft · Connected API account required</option></select><div class="hint">AI mode sends your brief to the selected provider and uses your API credits.</div></label><label class="field">AI provider (AI mode only)<select name="aiProvider">${[["openrouter","OpenRouter"],["openai","OpenAI"],["claude","Claude AI"],["gemini","Google Gemini"],["grok","Grok AI"]].map(([key,title])=>`<option value="${key}" ${key===(editorPrefs.aiProvider||"openai")?"selected":""}>${title}${connections.includes(key)?"":" — configure in Integrations"}</option>`).join("")}</select></label><p id="builder-job-status" role="status"></p></section>
   <div class="form-actions"><button type="button" class="btn" id="builder-back">Back</button><button type="button" class="btn primary" id="builder-next">Next</button><button type="submit" class="btn primary" id="builder-submit" hidden>Create website draft</button></div></form>`,'create-website');
   const form = document.getElementById('create-site');
+  const source=sites.find(item=>item.id===new URLSearchParams(location.search).get('from'));
+  if(source){
+    for(const [key,value] of Object.entries(source.data)){
+      const field=form.elements.namedItem(key);
+      if(field instanceof HTMLInputElement && field.type==='checkbox')field.checked=value===true;
+      else if(field && typeof value==='string' && value)field.value=value;
+    }
+    form.insertAdjacentHTML('beforebegin','<p class="alert">Regenerate a new copy from saved project settings. Your original website stays in My Websites.</p>');
+  }
   try{
     const key='sitocal-research-draft:'+session.user.email;
     const research=JSON.parse(sessionStorage.getItem(key));
-    if(research){
+    if(research&&!source){
       form.elements.city.value=research.city;
       form.elements.services.value=research.services.join(', ');
       sessionStorage.removeItem(key);
@@ -277,7 +286,7 @@ function converter(){
    }
    step++;draw();return;
   }
-  if(step===3){URL.revokeObjectURL(download);download='';step=0;siteId='';source=null;filename='';draw();return;}
+  if(step===lastStep){URL.revokeObjectURL(download);download='';step=0;siteId='';source=null;filename='';draw();return;}
   busy=true;draw();
   try{
    const input=siteId?{format,siteId}:{format,site:source.site||{business:source.business,city:source.city,pages:source.pages}};
@@ -382,6 +391,64 @@ const kind=serpTab;target.innerHTML=`<div class="alert">${connections.includes('
 async function jobs(){shell(header('Every step, in view.','Track provider actions and inspect what actually happened.')+loading(),'jobs');try{const {jobs}=await api('/api/jobs');shell(header('Every step, in view.','Provider outcomes are recorded here. Inspect unknown outcomes before retrying.')+`<section class="panel">${jobs.length?jobs.map(j=>`<article class="activity-item"><div class="row between"><strong>${esc(j.kind)}</strong><span class="badge ${j.status==='failed'||j.status==='unknown'?'warn':''}">${esc(j.status)}</span></div><small class="muted">${esc(new Date(j.created).toLocaleString())} · ${esc(j.id.slice(0,8))}</small><pre class="result">${esc(JSON.stringify(j.result,null,2))}</pre></article>`).join(''):'<div class="empty"><h2>Your next steps will show here.</h2><p>Repository pushes, hosting requests and research tasks create activity records.</p></div>'}</section>`,'jobs');}catch(e){notify(e.message);}}
 const siteTitle=id=>sites.find(item=>item.id===id)?.data.business||'Website';
 const refreshPage=()=>'<a class="btn small" href="'+esc(location.pathname+location.search)+'">Refresh</a>';
+async function myWebsites(){
+ const create='<a class="btn primary" href="'+href('create-website')+'">Create new website</a>';
+ const heading=header('My Websites','Preview, edit and publish your saved websites.',create);
+ shell(heading+loading('Loading websites…'),'my-websites');
+ const {sites:library}=await api('/api/sites?library=1');
+ const deployed=library.filter(item=>item.library.deployed).length;
+ const scopes={all:'All',city:'Citywide',state:'Statewide',national:'Nationwide',other:'Unclassified'};
+ const metrics=[
+  ['Total websites',library.length,'Saved in your workspace','my-websites'],
+  ['Total pages',library.reduce((n,item)=>n+item.data.pages.length,0),'Across saved websites','create-website'],
+  ['Deployed',deployed,'Provider confirmed ready','deployments'],
+  ['Undeployed',library.length-deployed,'Awaiting provider confirmation','generations']
+ ];
+ shell(heading+`<section class="website-library">
+  <div class="library-metrics">${metrics.map(([label,count,hint,icon])=>`<article class="panel"><div class="row between"><span class="eyebrow muted">${label}</span><span class="library-icon">${workspaceIcon(icon)}</span></div><strong>${count}</strong><small>${hint}</small></article>`).join('')}</div>
+  <div class="library-controls"><div class="segmented" role="group" aria-label="Website scope">${Object.entries(scopes).map(([key,label])=>`<button type="button" data-scope="${key}" aria-pressed="${key==='all'}">${label}</button>`).join('')}</div>
+  <input id="website-search" type="search" aria-label="Search websites" placeholder="Search websites…">
+  <div class="segmented" role="group" aria-label="Website layout"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
+  <p id="website-count" class="hint" role="status"></p><div id="website-results"></div></section>`,'my-websites');
+ const search=document.getElementById('website-search'),results=document.getElementById('website-results');
+ let scope='all',layout='grid';
+ function render(){
+  const term=search.value.trim().toLowerCase();
+  const matches=library.filter(({data,library:meta})=>(scope==='all'||meta.scope===scope)&&
+    [data.business,data.projectName,data.niche,data.city,data.services,data.theme].some(value=>String(value||'').toLowerCase().includes(term)));
+  document.getElementById('website-count').textContent=`${matches.length} of ${library.length} websites`;
+  results.className='library-results '+layout;
+  results.innerHTML=matches.length?matches.map(({id,data,created,library:meta})=>{
+   const edit=href('editor','?site='+id);
+   const actions=[
+    ['Manage pages','editor',edit],['Deploy','deployments',href('publish','?site='+id)],
+    ['Preview','app','/api/sites/'+id+'/preview'],['Regenerate','generations',href('create-website','?from='+id)],
+    ['Add page','create-website',edit+'&open=add-page'],['Image library','editor',edit+'&open=media'],
+    ['Download ZIP','wp','/api/sites/'+id+'/export']
+   ];
+   const initials=data.business.split(/\s+/).slice(0,2).map(word=>Array.from(word)[0]).join('').toUpperCase();
+   return `<article class="panel library-card"><div class="library-summary">
+    <div class="row between"><span class="badge">${scopes[meta.scope]}</span><span class="badge">${meta.deployed?'Deployed':meta.submitted?'Awaiting confirmation':'Undeployed'}</span></div>
+    <div class="library-identity"><span class="avatar" aria-hidden="true">${esc(initials)}</span><div><h2>${esc(data.business)}</h2><p>${esc(data.projectName||data.city)}</p></div></div>
+    <div class="row library-tags">${data.niche?`<span class="badge">${esc(data.niche)}</span>`:''}<span class="badge">${esc(data.theme)} theme</span></div></div>
+    <div><dl class="library-details"><div><dt>Pages</dt><dd>${data.pages.length}</dd></div><div><dt>Build</dt><dd>${meta.build||'Saved'}</dd></div><div><dt>AI spend</dt><dd>${meta.cost===null?'Unavailable':'$'+meta.cost.toFixed(6)}</dd></div></dl>
+    <p class="hint">Saved <time datetime="${esc(created)}">${esc(new Date(created).toLocaleString())}</time></p></div>
+    <div class="library-actions">${actions.map(([label,icon,url])=>`<a href="${esc(url)}" ${label==='Preview'?'target="_blank" rel="noopener"':''}>${workspaceIcon(icon)}${label}</a>`).join('')}
+    <button type="button" data-action="delete-library-site" data-site="${id}">${workspaceIcon('settings')}Delete</button></div></article>`;
+  }).join(''):`<div class="panel empty"><h2>${library.length?'No matching websites':'No websites yet'}</h2><p>${library.length?'Try a different scope or search term.':'Your first saved draft will appear here.'}</p>${library.length?'':create}</div>`;
+ }
+ search.closest('.library-controls').onclick=event=>{
+  const control=event.target.closest('button[data-scope],button[data-layout]');
+  if(!control)return;
+  if(control.dataset.scope)scope=control.dataset.scope;
+  else layout=control.dataset.layout;
+  for(const option of control.parentElement.children)option.setAttribute('aria-pressed',String(option===control));
+  render();
+ };
+ search.oninput=render;
+ render();
+}
+
 function websiteLibrary(inEditor=false){
   shell(header(inEditor?'Editor sites':'My websites','Search your projects, edit content, export ZIPs and choose where to publish.', '<a class="btn primary" href="'+href('create-website')+'">Create website</a>')+(inEditor?`<section class="panel editor-drop" id="editor-drop"><div class="row"><label class="btn import-label">Import ZIP or HTML<input type="file" accept=".zip,.html,.htm" data-import hidden></label><a class="btn" href="${href('editor-settings')}">Editor settings</a></div><p>Drop a ZIP or HTML file here, or choose a file. Sitocal ZIPs retain the saved draft. HTML files import editable text.</p></section>`:'')+
     `<section class="stats-row"><div class="stat"><span class="stat-label">Saved websites</span><div class="stat-value">${sites.length}</div></div><div class="stat"><span class="stat-label">Pages</span><div class="stat-value">${sites.reduce((sum,item)=>sum+item.data.pages.length,0)}</div></div></section>
@@ -711,7 +778,14 @@ function editorSettings(){
 }
 
 async function refresh(){const results=await Promise.all([api('/api/sites'),api('/api/connections')]);sites=results[0].sites;connections=results[1].connections;managedConnections=results[1].managed||[];connectorChecks=results[1].checks||[];const wanted=new URLSearchParams(location.search).get('site');site=sites.find(s=>s.id===(wanted||site?.id))||sites[0]||null;}
-async function screen(){document.title=(navItems.find(x=>x[0]===route)?.[2]||'Workspace')+' — Sitocal';switch(route){case'settings':await settingsScreen();break;case'account':await accountScreen({api,shell,header});break;case'developer':case'indexing':case'billing':await toolScreen(route,{api,shell,header,href,button});break;case'whats-new':whatsNew();break;case'support-tickets':await supportTickets();break;case'call-intelligence':await callIntelligence();break;case'serp-checker':await serpChecker();break;case'site-search':await siteSearch();break;case'my-websites':websiteLibrary();break;case'generations':case'deployments':await workspaceHistory(route);break;case'form-leads':await formLeads();break;case'call-earnings':await callEarnings();break;case'create-website':await builder();break;case'app':await overview();break;case'editor-settings':await loadEditorPrefs();editorSettings();break;case'editor':await loadEditorPrefs();if(new URLSearchParams(location.search).has('site'))await editor();else websiteLibrary(true);break;case'wp':converter();break;case'serp':serp();break;case'publish':await publish();break;case'integrations':integrations();break;case'domains':domains();break;case'jobs':await jobs();break;default:await overview();}}
+async function screen(){document.title=(navItems.find(x=>x[0]===route)?.[2]||'Workspace')+' — Sitocal';switch(route){case'settings':await settingsScreen();break;case'account':await accountScreen({api,shell,header});break;case'developer':case'indexing':case'billing':await toolScreen(route,{api,shell,header,href,button});break;case'whats-new':whatsNew();break;case'support-tickets':await supportTickets();break;case'call-intelligence':await callIntelligence();break;case'serp-checker':await serpChecker();break;case'site-search':await siteSearch();break;case'my-websites':await myWebsites();break;case'generations':case'deployments':await workspaceHistory(route);break;case'form-leads':await formLeads();break;case'call-earnings':await callEarnings();break;case'create-website':await builder();break;case'app':await overview();break;case'editor-settings':await loadEditorPrefs();editorSettings();break;case'editor':await loadEditorPrefs();if(new URLSearchParams(location.search).has('site')){
+ await editor();
+ const params=new URLSearchParams(location.search);
+ if(site?.id===params.get('site')){
+  if(params.get('open')==='add-page')addEditorPage();
+  if(params.get('open')==='media')await openMediaLibrary();
+ }
+}else websiteLibrary(true);break;case'wp':converter();break;case'serp':serp();break;case'publish':await publish();break;case'integrations':integrations();break;case'domains':domains();break;case'jobs':await jobs();break;default:await overview();}}
 async function save(){captureEdit();site=await api('/api/sites/'+site.id,{method:'PUT',body:site.data});dirty=false;await refresh();const state=document.getElementById('save-state');if(state)state.textContent='All changes saved';notify('Revision saved. Your export now includes these changes.');}
 async function importZip(file){if(!file)return;dialog(loading('Opening your website…'));try{const html=/\.html?$/i.test(file.name);if(html&&file.size>1048576)throw Error('Choose an HTML file under 1 MB.');const r=html?{needsMapping:true,warning:'HTML import keeps editable text. Review the result in the editor.',pages:[{name:file.name,html:await file.text()}]}:await api('/api/import',{method:'POST',body:await file.arrayBuffer()});if(r.needsMapping){modalContent.innerHTML=`<h2>Map your imported content.</h2><div class="alert">${esc(r.warning)}</div><form id="map-import"><label class="field">Business name<input name="business" required></label><label class="field">Service area<input name="city" required></label><p class="hint">${r.pages.length} HTML pages found. Review imported text in the editor before exporting.</p><button class="btn primary" type="submit">Import as editable draft</button></form>`;document.getElementById('map-import').addEventListener('submit',async e=>{e.preventDefault();const info=Object.fromEntries(new FormData(e.target));const pages=r.pages.map((p,i)=>{const template=document.createElement('template');template.innerHTML=p.html;const doc=template.content;const title=doc.querySelector('title')?.textContent;doc.querySelectorAll('script,style,noscript,iframe,template').forEach(el=>el.remove());const headings=[...doc.querySelectorAll('h1,h2,h3')].slice(0,20);const sections=headings.map(h=>{let body='',node=h.nextElementSibling;while(node&&!/^H[123]$/.test(node.tagName)){if(['P','UL','OL','DIV'].includes(node.tagName))body+=node.textContent+'\n';node=node.nextElementSibling;}return{heading:h.textContent.slice(0,200),body:body.trim().slice(0,4000),cta:''};});return{slug:i===0?'home':p.name.replace(/.*\//,'').replace(/\.html?$/i,''),title:title||'Imported page '+(i+1),description:'',sections:sections.length?sections:[{heading:title||'Imported content',body:doc.textContent.slice(0,4000),cta:''}]};});try{const result=await api('/api/sites',{method:'POST',body:{...info,pages}});modal.close();location.href=href('editor','?site='+result.id);}catch(e){notify(e.message);}});return;}modal.close();location.href=href('editor','?site='+r.id);}catch(e){modal.close();notify(e.message);}}
 document.addEventListener('submit',async e=>{const form=e.target;if((!form.id&&!form.classList.contains('lead-status-form'))||form.id==='map-import'||form.id==='site-language-form'||form.id==='serpum-form')return;e.preventDefault();const submit=form.querySelector('[type=submit]');if(form.id==="create-site"&&submit?.disabled)return;const original=submit?.textContent;if(submit){submit.disabled=true;submit.textContent='Working…';}const b=Object.fromEntries(new FormData(form));try{
@@ -902,6 +976,19 @@ case'apply-section-rewrite':{
  if(!suggestion||site.id!==suggestion.project||site.data.pages[pageIndex]!==suggestion.page||suggestion.page.sections[suggestion.index]!==suggestion.original)throw Error('The draft changed. Open a new rewrite.');
  Object.assign(suggestion.original,suggestion.section);dirty=true;modal.close();await editor();notify('Suggestion applied to the draft. Save a revision to keep it.');break;
 }
+case'delete-library-site':{
+ const item=sites.find(candidate=>candidate.id===el.dataset.site);
+ if(!item||!confirm('Delete '+item.data.business+' and its saved pages, revisions, media and form leads? External deployments stay online.'))break;
+ el.disabled=true;
+ try{
+  await api('/api/sites/'+item.id,{method:'DELETE'});
+  sites=sites.filter(candidate=>candidate.id!==item.id);
+  if(site?.id===item.id)site=sites[0]||null;
+  await myWebsites();
+  notify('Website deleted from your workspace.');
+ }finally{el.disabled=false;}
+ break;
+}
 case'editor-media':await openMediaLibrary();break;case'use-media':{const section=site.data.pages[pageIndex].sections[activeSection];section.image=el.dataset.image;section.alt='';dirty=true;modal.close();await editor();break;}case'delete-media':if(confirm('Delete this unused image? Older revisions that reference it will lose the image.')){await api('/api/sites/'+site.id+'/media/'+el.dataset.image,{method:'DELETE'});modal.close();await openMediaLibrary();}break;case'add-page':addEditorPage();break;case'editor-audit':editorAudit();break;case'verify-account-email':{el.disabled=true;try{await api('/api/account/email/verify',{method:'POST',body:{}});await settingsScreen();notify('Verification email queued. Open the link while signed in.');}finally{el.disabled=false;}break;}
 case'confirm-account-email':{el.disabled=true;try{await api('/api/account/email/confirm',{method:'POST',body:{token:el.dataset.token}});history.replaceState(null,'',location.pathname+location.search);await settingsScreen();notify('Email verified.');}finally{el.disabled=false;}break;}
 case'check-deployment':{el.disabled=true;try{const result=await api('/api/sites/'+el.dataset.site+'/deployment-status',{method:'POST',body:{jobId:el.dataset.job}});await workspaceHistory('deployments');notify('Provider status: '+result.state);}finally{el.disabled=false;}break;}case'remove-phrase':if(confirm('Remove this customer phrase?')){await api('/api/workspace/call-phrases',{method:'DELETE',body:{id:el.dataset.phrase}});await callIntelligence();}break;case'reset-editor-prefs':editorPrefs=await api('/api/editor/preferences',{method:'PUT',body:defaultEditorPrefs});editorSettings();notify('Editor defaults restored.');break;case'new-site':newSite();break;case'signup':location.href=href('register',location.search);break;case'signin':location.href=href('login',location.search);break;case'logout':await api('/api/auth/logout',{method:'POST',body:{}});location.href=href('landing');break;case'apply-edit':captureEdit();if(editorPrefs.saveOnPreview&&dirty)await save();await refreshFrame();break;case'save-site':el.disabled=true;try{await save();}finally{el.disabled=false;}break;
@@ -948,3 +1035,4 @@ initAuthEvents({api,notify,returnTo:()=>['serp','indexing','developer','integrat
 initToolEvents({api,notify,refreshScreen:screen});
 initAppearance();
 if(location.hostname.endsWith('.translate.goog')){initMarketing(root);syncPublicNavigation();}else init();
+
