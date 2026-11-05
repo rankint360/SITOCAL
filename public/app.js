@@ -64,8 +64,8 @@ shell(`<section class="fieldwork-intro"><div><div class="eyebrow muted">YOUR WOR
 function newSite(){location.href=href('create-website');}
 const builderDomainSuffixes=[
  '.com','.net','.org','.co','.io','.us','.co.uk','.uk','.site','.online','.services','.ventures','.pro','.biz','.app',
- '.netlify.app','.vercel.app','surge.sh','.pages.dev','.onrender.com','.github.io','gitlb.io','codeberg.page',
- '.amplifyaapp.com','.ondigitalocean.com','.epizy.com'
+ '.netlify.app','.vercel.app','surge.sh','.pages.dev','.onrender.com','.github.io','.gitlab.io','codeberg.page',
+ '.amplifyapp.com','.ondigitalocean.com','.epizy.com'
 ];
 async function builder(){
   await loadEditorPrefs();

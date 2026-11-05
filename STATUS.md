@@ -1,6 +1,6 @@
 # Website builder domain dropdown
 
-2026-11-05. Added the requested domain endings and a Custom Domain choice to Design & Branding. The builder previews and validates the hostname, shows it in Review, and saves it atomically with the new draft as the planned HTTPS address. DNS and provider provisioning remain separate. Preserved the requested spellings. Syntax checks and all 103 tests passed, including creation with a saved origin and rejection of an invalid origin. Production rollout remains unverified.
+2026-11-05. Added the requested domain endings and a Custom Domain choice to Design & Branding. The builder previews and validates the hostname, shows it in Review, and saves it atomically with the new draft as the planned HTTPS address. DNS and provider provisioning remain separate. Corrected the hosting suffixes to .gitlab.io and .amplifyapp.com. Syntax checks and all 103 tests also passed after the correction. Syntax checks and all 103 tests passed, including creation with a saved origin and rejection of an invalid origin. Production rollout remains unverified.
 
 # Sitewide audit and navigation repairs
 
