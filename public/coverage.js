@@ -45,7 +45,7 @@ export function parseCoverageCsv(text){
 export function coverageGroups(rows,mode){
  const groups=new Map();
  for(const row of rows){
-  const place=mode==='state'?row.state:mode==='zip'?row.zip+' · '+row.city+', '+row.state:row.city+', '+row.state;
+  const place=mode==='national'?'Nationwide':mode==='state'?row.state:mode==='zip'?row.zip+' · '+row.city+', '+row.state:row.city+', '+row.state;
   const key=JSON.stringify([place,row.niche,row.model]);
   if(!groups.has(key))groups.set(key,{key,place,niche:row.niche,model:row.model,population:mode==='state'?null:row.population,zips:new Set(),payouts:[]});
   const item=groups.get(key);item.zips.add(row.zip);item.payouts.push(row.payout);
@@ -70,7 +70,7 @@ export function initCoverage(){
  function render(){
   root.querySelectorAll('[data-coverage-tab]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.coverageTab===tab)));
   const results=get('results');results.innerHTML='';
-  if(!rows.length){get('summary').textContent='Import an authorized dataset to explore coverage.';pager(0);return;}
+  if(!rows.length){get('summary').textContent='Coverage results appear when a snapshot is published or a CSV is loaded.';pager(0);return;}
   const query=value('query').trim().toLowerCase(),state=value('state'),niche=value('niche'),model=value('model'),minPay=Number(value('min-pay')),maxPay=value('max-pay')?Number(value('max-pay')):Infinity,minPopulation=Number(value('population')),minZip=Number(value('min-zip'))||1;
   const filtered=rows.filter(row=>(!state||row.state===state)&&(!niche||row.niche===niche)&&(!model||row.model===model)&&row.payout>=minPay&&row.payout<=maxPay&&(!minPopulation||row.population>=minPopulation)&&(!query||(get('search-kind').value==='zip'?row.zip.startsWith(query):(row.city+', '+row.state).toLowerCase().includes(query))));
   if(tab==='bundles'){
@@ -89,14 +89,30 @@ export function initCoverage(){
   pager(items.length);
  }
  function pager(count){get('previous').disabled=page===0;get('next').disabled=(page+1)*30>=count;}
+ function installDataset(imported,label){
+  rows=imported;
+  get('state').innerHTML=choices([...new Set(rows.map(row=>row.state))].sort(),'All states');
+  get('niche').innerHTML=choices([...new Set(rows.map(row=>row.niche))].sort(),'All niches');
+  get('file-status').textContent=label;
+  const rankings=coverageGroups(rows,'national').sort((a,b)=>b.payout-a.payout);
+  const stats=get('snapshot-stats');
+  stats.textContent=new Set(rows.map(row=>row.niche)).size+' offers · '+new Set(rows.map(row=>row.zip)).size.toLocaleString()+' ZIPs · '+rows.length.toLocaleString()+' payout records';
+  get('rankings').innerHTML='<div class="table-scroll"><table><thead><tr><th>Offer</th><th>Model</th><th>ZIPs</th><th>Median</th><th>Range</th></tr></thead><tbody>'+rankings.map(item=>'<tr><td>'+esc(item.niche)+'</td><td>'+(item.model==='cpl'?'Cost per lead':'Pay per call')+'</td><td>'+item.count+'</td><td>'+money(item.payout)+'</td><td>'+money(item.range[0])+'–'+money(item.range[1])+'</td></tr>').join('')+'</tbody></table></div>';
+  page=0;
+  render();
+ }
+ fetch('/api/coverage/snapshot').then(async response=>{
+  if(response.status===204)return;
+  if(!response.ok)throw Error('Coverage snapshot is temporarily unavailable.');
+  const csv=await response.text();
+  const published=response.headers.get('Last-Modified');
+  if(!rows.length)installDataset(parseCoverageCsv(csv),published?'Published '+new Date(published).toLocaleString():'Published coverage');
+ }).catch(()=>{if(!rows.length)get('file-status').textContent='Could not load the published snapshot. You can still import a CSV for this session.';});
  get('file').addEventListener('change',async event=>{
   const file=event.target.files[0];if(!file)return;
   try{
    if(file.size>40*1024*1024)throw Error('Choose a CSV under 40 MB.');
-   const imported=parseCoverageCsv(await file.text());rows=imported;
-   get('state').innerHTML=choices([...new Set(rows.map(row=>row.state))].sort(),'All states');
-   get('niche').innerHTML=choices([...new Set(rows.map(row=>row.niche))].sort(),'All niches');
-   get('file-status').textContent=file.name+' · '+rows.length.toLocaleString()+' coverage rows';page=0;render();
+   installDataset(parseCoverageCsv(await file.text()),file.name+' · local preview');
   }catch(error){get('file-status').textContent=error.message;}
   finally{event.target.value='';}
  });
@@ -114,4 +130,3 @@ export function initCoverage(){
  get('filters').addEventListener('change',()=>{page=0;render();});
  render();
 }
-

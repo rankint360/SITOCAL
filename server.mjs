@@ -151,6 +151,12 @@ async function handler(req,res){
     const adminHost=Boolean(baseDomain&&hostname==='admin.'+baseDomain);
     const adminSurface=adminHost||['localhost','127.0.0.1'].includes(hostname)||process.env.ADMIN_ALLOW_PREVIEW==='true'&&hostname===process.env.RENDER_EXTERNAL_HOSTNAME;
     if(p.startsWith('/api/admin/')){if(!adminSurface)throw new ProviderError('Use the administrator hostname',403);if(await handleAdmin(req,res,{p,db,store,body,json,origin,url,rate}))return;}
+    if(p==='/api/coverage/snapshot'&&req.method==='GET'){
+      const snapshot=db.prepare('SELECT csv,published FROM coverage_snapshot WHERE id=1').get();
+      if(!snapshot){res.writeHead(204,{'Cache-Control':'no-store'});return res.end();}
+      res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Cache-Control':'no-cache','Last-Modified':new Date(snapshot.published).toUTCString()});
+      return res.end(snapshot.csv);
+    }
     if(p==='/api/plans/public'&&req.method==='GET')return json(res,200,{plans:planCatalog(db).map(({code,amount,sites,features})=>({code,amount,sites,features}))});
     if((p==='/admin'||p.startsWith('/admin/'))||(adminHost&&['/','/login','/signup','/settings'].includes(p))){if(!adminSurface){if(!baseDomain)throw new ProviderError('Admin hostname is not configured',404);res.writeHead(302,{Location:'https://admin.'+baseDomain+'/'});return res.end();}if(req.method!=='GET')throw new ProviderError('Method not allowed',405);res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(await readFile(path.join(root,'public/admin.html')));}
     if(adminHost&&!p.startsWith('/assets/')&&p!=='/api/health')throw new ProviderError('Use the customer application hostname for this endpoint',403);

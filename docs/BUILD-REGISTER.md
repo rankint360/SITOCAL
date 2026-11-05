@@ -1,3 +1,7 @@
+# Admin-published LeadSmart coverage
+
+Added an owner-only CSV publisher and a persistent public snapshot. The explorer loads published data automatically and shows offer rankings, source guidance and FAQs. The manual CSV preview remains available. No automatic upstream feed is configured.
+
 # Sidebar navigation icons
 
 Added route-specific icons for signed-in desktop, mobile and admin navigation. Hover and keyboard focus animate icons when reduced motion is off. Focused Emerald Studio tests passed locally.

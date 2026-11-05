@@ -13,6 +13,14 @@ test('admin isolation, bootstrap/invitations/RBAC, grants, pricing, promos, refe
  assert.equal((await call('/api/admin/auth/signup',{}, {email:'owner@example.invalid',password:'fixture-owner-password',code:'incorrect'})).status,403);
  r=await call('/api/admin/auth/signup',{}, {email:'owner@example.invalid',password:'fixture-owner-password',code:setup});assert.equal(r.status,200,JSON.stringify(r.data));const owner=loginInfo(r);assert.equal(owner.admin.role,'owner');const cookie=r.response.headers.get('set-cookie');assert(cookie.includes('HttpOnly'));assert(cookie.includes('SameSite=Strict'));assert(!cookie.includes('Domain='));
  assert.equal((await call('/api/admin/auth/signup',{}, {email:'intruder@example.invalid',password:'fixture-owner-password',code:setup})).status,403);
+ const coverageCsv='zip,city,state,niche,model,payout\n01234,Fixture City,MA,Plumbing,call,30';
+ assert.equal((await fetch(origin+'/api/coverage/snapshot')).status,204);
+ assert.equal((await call('/api/admin/coverage',{}, {csv:coverageCsv})).status,401);
+ assert.equal((await call('/api/admin/coverage',owner,{csv:coverageCsv})).data.records,1);
+ assert.equal((await call('/api/admin/coverage',owner,{csv:'invalid'})).status,400);
+ const publicCoverage=await fetch(origin+'/api/coverage/snapshot');
+ assert.equal(await publicCoverage.text(),coverageCsv);
+ assert(publicCoverage.headers.get('last-modified'));
  const act=async(body,auth=owner)=>call('/api/admin/action',auth,{reason:'Automated disposable fixture',...body});
  assert.equal((await act({action:'settings.save',approvalRequired:true},{cookie:owner.cookie,csrf:'wrong'})).status,403);
  assert.equal((await call('/api/admin/action',owner,{action:'settings.save',approvalRequired:true,reason:'fixture'},{Origin:'https://evil.example'})).status,403);
