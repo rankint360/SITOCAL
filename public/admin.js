@@ -67,11 +67,12 @@ function initCredentialForms(data){
    if(provider.value==='vercel')keys.push('team');
    holder.innerHTML=keys.map(key=>{
     const secret=['token','password','hook'].includes(key);
-    const required=(!shared||!saved)&&key!=='team';
+    const required=!shared&&key!=='team';
     return '<label class="field">'+labels[key]+'<input name="credential_'+key+'" type="'+(secret?'password':'text')+
      '" maxlength="2000" autocomplete="off" '+(required?'required':'')+'></label>';
    }).join('');
    if(shared){
+    holder.insertAdjacentHTML('afterbegin','<p class="hint">Leave credential fields blank to keep the stored credentials. Fill in the fields to replace them.</p>');
     form.elements.userLimit.value=saved?.user_limit??5;
     form.elements.globalLimit.value=saved?.global_limit??50;
     form.elements.enabled.value=saved?.enabled?'true':'false';

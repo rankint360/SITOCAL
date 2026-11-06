@@ -1,3 +1,7 @@
+# Shared connector form validation
+
+2026-11-05. Shared connection forms accept blank credentials for limit or access changes. The server decides whether a saved key exists and validates replacements. Syntax checks and all 104 tests passed. Browser confirmation of the updated form remains pending.
+
 # Integration settings and password visibility
 
 2026-11-05. Replaced Admin credential JSON entry with provider-specific fields for shared AI and research connections and customer-owned integrations. Admin shows whether core Render settings are present for Resend, Google Search and Analytics, social sign-in, and Stripe credentials. Customer Integrations explains that a customer's key and model take priority for that provider. Added Show and Hide controls to password and secret inputs in the customer and Admin interfaces. Syntax checks and all 104 tests passed, including Admin provider schemas and secret handling. Production UI verification and platform OpenRouter setup are pending.
