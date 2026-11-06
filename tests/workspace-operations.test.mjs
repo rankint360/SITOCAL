@@ -27,6 +27,13 @@ test('website leads and payout records stay isolated and generation history link
     assert.deepEqual(listed.library,{scope:'city',build:'Template',cost:0,deployed:false,submitted:false});
     assert.deepEqual((await(await call(list,{cookie:other})).json()).sites,[]);
     assert.equal((await call('/api/sites/'+site.id,{method:'DELETE',cookie:other,csrf:otherAuth.csrf})).status,404);
+    const planBody={business:'Austin Flow',city:'Austin',services:'Drain cleaning',locations:'North Austin',blogTitles:'How to check a drain'};
+    assert.equal((await call('/api/builder/plan',{method:'POST',cookie,body:planBody})).status,403);
+    const planned=await(await call('/api/builder/plan',{method:'POST',cookie,csrf,body:planBody})).json();
+    assert.deepEqual(planned.pages.map(page=>page.slug),['home','drain-cleaning','location-north-austin','article-how-to-check-a-drain','services','about','contact']);
+    const themePreview=await call('/api/builder/theme-preview?theme=harbor',{cookie});
+    assert.equal(themePreview.status,200);
+    assert.match(await themePreview.text(),/Oak &amp; Pine Home Services/);
     const previewUrl='/api/sites/'+site.id+'/preview';
     const homepage=await call(previewUrl,{cookie});
     assert.match(homepage.headers.get('x-robots-tag'),/noindex/);

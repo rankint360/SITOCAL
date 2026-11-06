@@ -230,3 +230,11 @@ html[data-palette=glass] :is(.workspace.studio-workspace,.admin-layout){backgrou
 .site-navigation .appearance-dialog .appearance-card{display:grid}
 .studio-route-account section.panel+section.panel{margin-top:18px}
 .studio-route-account code{overflow-wrap:anywhere}
+
+.builder-chips { flex-wrap: wrap; }
+.builder-suggestions { display: grid; justify-items: start; gap: 8px; margin: 8px 0 20px; }
+.builder-theme-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 10px; margin: 16px 0; }
+.builder-theme-gallery [aria-pressed="true"] { border-color: var(--green); background: var(--ivory); font-weight: 700; }
+.builder-theme-preview { width: 100%; height: min(68vh, 640px); background: var(--ivory); border: 1px solid var(--line); }
+#builder-progress { margin: 16px 0; }
+#builder-progress progress { width: 100%; }

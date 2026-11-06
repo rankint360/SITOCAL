@@ -40,8 +40,11 @@ test('draft to deployment, lead, Search Console and rank tracking with provider 
   const [rewrite]=await call(base+'/rewrite-section','POST',{provider:'openai',style:'concise',reviewed:true,section:original});
   assert.equal(rewrite.section.heading,'Clear the drain');
   assert.equal((await call(base))[0].data.pages[0].sections[0].heading,original.heading);
+  const suggestionRequest={provider:'openai',kind:'services',niche:'Plumbing',city:'Austin',reviewed:true};
+  const [suggestions]=await call('/api/builder/suggestions','POST',suggestionRequest);
+  assert.deepEqual(suggestions.items,['Drain cleaning','Pipe inspection']);
   const [budget]=await call('/api/account/provider-budget','PUT',{ai:0,search:5});
-  assert.equal(budget.used.ai,1);
+  assert.equal(budget.used.ai,2);
   const limited=await fetch(origin+base+'/rewrite-section',{method:'POST',headers:{Origin:origin,Cookie:cookie,'X-CSRF-Token':csrf,'Content-Type':'application/json'},body:JSON.stringify({provider:'openai',style:'concise',reviewed:true,section:original})});
   assert.equal(limited.status,429);
   await call(base+'/launch','PUT',{source:'',host:'netlify',origin:'https://launch.example.invalid',checked:[],revision:site.updated});

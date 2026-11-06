@@ -26,6 +26,9 @@ globalThis.fetch=async(input,options={})=>{
  }
  if(url.origin==='https://api.openai.com'){
   assert.equal(url.pathname,'/v1/responses');
+  if(JSON.parse(options.body).text.format.name==='sitocal_builder_suggestions'){
+   return json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({items:['Drain cleaning','Drain cleaning','Pipe inspection']})}]}]});
+  }
   assert.equal(JSON.parse(options.body).store,false);
   return json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({heading:'Clear the drain',body:'Ask about drain cleaning in Austin.',cta:'Get a quote'})}]}]});
  }

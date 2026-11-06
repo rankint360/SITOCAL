@@ -33,7 +33,7 @@ import { esc,draftSite,validateSite,renderPage,staticFiles,converterFiles,slug }
 import { zip,unzip } from './lib/archive.mjs';
 import { ProviderError,request,pushRepository,deploy,checkSerp,demand } from './lib/providers.mjs';
 import { googleReady,googleStart,googleCallback,googleProperties,googleReport } from './lib/google.mjs';
-import { generateSite,rewriteWebsiteSection } from './lib/ai.mjs';
+import { generateSite,rewriteWebsiteSection,suggestBuilderItems } from './lib/ai.mjs';
 import { hostConfig } from './lib/config.mjs';
 import { sessionCandidates,findManifest } from './lib/migration.mjs';
 
@@ -474,6 +474,25 @@ async function handler(req,res){
         for(const site of sites)site.library=metadata.get(site.id);
       }
       return json(res,200,{sites});
+    }
+    if(p==='/api/builder/suggestions'&&req.method==='POST'){
+      assertAccess(db,user,'builder');
+      const input=await body(req,8192);
+      const provider=input?.provider;
+      if(!['openai','openrouter'].includes(provider)||input.reviewed!==true)throw new ProviderError('Choose an AI provider and confirm the request',400);
+      const config=connection(user,provider);
+      return json(res,200,await job(user,null,'builder-suggestion',()=>suggestBuilderItems(config,provider,input)));
+    }
+    if(p==='/api/builder/plan'&&req.method==='POST'){
+      assertAccess(db,user,'builder');
+      const data=draftSite(await body(req,48000));
+      return json(res,200,{pages:data.pages.map(({slug,title})=>({slug,title}))});
+    }
+    if(p==='/api/builder/theme-preview'&&req.method==='GET'){
+      assertAccess(db,user,'builder');
+      const sample=draftSite({business:'Oak & Pine Home Services',city:'Austin',services:'Home repairs, Property maintenance',theme:url.searchParams.get('theme')});
+      res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'; sandbox",'X-Robots-Tag':'noindex'});
+      return res.end(renderPage(sample,sample.pages[0],false,{},()=> '#main'));
     }
     if(p==='/api/sites'&&req.method==='POST'){
       checkSiteCapacity(db,user);

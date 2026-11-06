@@ -38,3 +38,11 @@ test('AI cannot silently discard the full page section plan',()=>{
   const base=draftSite({business:'Test',city:'Lahore'}),pages=structuredClone(base.pages);pages[0].sections.pop();
   assert.throws(()=>parseDraft({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({pages})}]}]},base),/section plan/);
 });
+
+test('builder publishes only supplied pricing and testimonial copy in optional sections',()=>{
+ const input={business:'Oak and Pine',city:'Austin',services:'Repair'};
+ const homepage=draftSite({...input,pricingDetails:'Contact us for a quote.',testimonials:'They arrived on time.'}).pages[0];
+ assert(homepage.sections.some(section=>section.heading==='Pricing and packages'&&section.body==='Contact us for a quote.'));
+ assert(homepage.sections.some(section=>section.heading==='Customer testimonials'&&section.body==='They arrived on time.'));
+ assert(!draftSite(input).pages[0].sections.some(section=>section.heading==='Customer testimonials'));
+});
