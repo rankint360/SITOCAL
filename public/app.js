@@ -160,7 +160,7 @@ async function builder(){
       const input=fields();
       input.niche=input.niche.trim()||input.business.trim();
       if(!input.niche||!input.city.trim()){results.textContent='Enter your niche or business name and city first.';return;}
-      dialog(`<h2>${label}</h2><p>Your connected AI provider may charge for this request. Review every suggestion before adding it.</p>
+      dialog(`<h2>${label}</h2><p>This request uses your platform allowance or your own provider account. Review every suggestion before adding it.</p>
       <label class="field">Provider<select id="builder-suggestion-provider">${providers.map(provider=>`<option value="${provider}" ${editorPrefs.aiProvider===provider?'selected':''}>${providerMeta[provider][1]}</option>`).join('')}</select></label>
       <button type="button" class="btn primary" id="builder-confirm-suggestion">Get suggestions</button>`);
       document.getElementById('builder-confirm-suggestion').onclick=async()=>{
@@ -279,7 +279,11 @@ async function builder(){
     const ai=generation.value==='ai';
     aiProvider.disabled=!ai;
     aiProvider.setCustomValidity(ai&&!connections.includes(aiProvider.value)?'Choose a connected AI provider.':'');
-    cost.textContent=ai?'Your connected provider bills this build according to its model and usage.':'Template generation uses no paid AI requests.';
+    cost.textContent=ai
+      ?managedConnections.includes(aiProvider.value)
+        ?'This build uses your platform AI allowance.'
+        :'Your connected provider bills this build according to its model and usage.'
+      :'Template generation uses no paid AI requests.';
   }
   generation.addEventListener('change',updateGeneration);
   aiProvider.addEventListener('change',updateGeneration);

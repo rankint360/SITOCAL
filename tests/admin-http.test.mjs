@@ -92,6 +92,14 @@ test('admin isolation, bootstrap/invitations/RBAC, grants, pricing, promos, refe
  assert((await call('/api/connections',customer)).data.managed.includes('claude'));
  assert.equal((await act({action:'connectors.save',provider:'github',config:{token:'fixture'},userLimit:1,globalLimit:2,enabled:true})).status,400);
  await act({action:'connectors.toggle',provider:'claude',enabled:false});assert(!(await call('/api/connections',customer)).data.managed.includes('claude'));
+ const openrouter={provider:'openrouter',userLimit:1,globalLimit:2};
+ const platformKey={token:'OPENROUTER_PRIVATE_FIXTURE',model:'openai/gpt-4.1-mini'};
+ assert.equal((await act({action:'connectors.save',...openrouter,config:platformKey,enabled:false})).status,200);
+ assert(!(await call('/api/connections',customer)).data.connections.includes('openrouter'));
+ assert.equal((await act({action:'connectors.save',...openrouter,enabled:true})).status,200);
+ const managed=(await call('/api/connections',customer)).data;
+ assert(managed.connections.includes('openrouter')&&managed.managed.includes('openrouter'));
+ assert(!JSON.stringify(await call('/api/admin/view?section=connectors',owner)).includes(platformKey.token));
  await act({action:'settings.tool',feature:'api',enabled:false});assert.equal((await call('/api/developer/keys',customer)).status,403);await act({action:'settings.tool',feature:'api',enabled:true});await act({action:'settings.tool',feature:'serpum',enabled:false});assert.equal((await fetch(origin+'/serpum')).status,503);await act({action:'settings.tool',feature:'serpum',enabled:true});
  r=await act({action:'admins.invite',email:'support@example.invalid',role:'support'});assert.equal(r.status,200);const invitation=r.data.code;
  r=await call('/api/admin/auth/signup',{}, {email:'support@example.invalid',password:'fixture-support-password',code:invitation});assert.equal(r.status,200);const support=loginInfo(r);
