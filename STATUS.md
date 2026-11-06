@@ -1,3 +1,7 @@
+# Integration settings and password visibility
+
+2026-11-05. Replaced Admin credential JSON entry with provider-specific fields for shared AI and research connections and customer-owned integrations. Admin shows whether core Render settings are present for Resend, Google Search and Analytics, social sign-in, and Stripe credentials. Customer Integrations explains that a customer's key and model take priority for that provider. Added Show and Hide controls to password and secret inputs in the customer and Admin interfaces. Syntax checks and all 104 tests passed, including Admin provider schemas and secret handling. Production UI verification and platform OpenRouter setup are pending.
+
 # Platform OpenRouter connection
 
 2026-11-05. Added OpenRouter to the shared provider choices in Admin. The existing credential encryption, per-customer and platform daily request limits, provider switch, and customer key precedence apply. The builder identifies when generation uses the platform allowance. Syntax checks and all 104 tests passed, including saving a disabled key, enabling shared discovery for customers, and keeping credentials out of Admin responses. Production configuration and a live request are pending.

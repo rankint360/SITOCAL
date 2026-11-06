@@ -92,6 +92,9 @@ test('admin isolation, bootstrap/invitations/RBAC, grants, pricing, promos, refe
  assert((await call('/api/connections',customer)).data.managed.includes('claude'));
  assert.equal((await act({action:'connectors.save',provider:'github',config:{token:'fixture'},userLimit:1,globalLimit:2,enabled:true})).status,400);
  await act({action:'connectors.toggle',provider:'claude',enabled:false});assert(!(await call('/api/connections',customer)).data.managed.includes('claude'));
+ assert.deepEqual(meta.data.customerConnectorFields.openrouter,['token','model']);
+ assert.deepEqual(meta.data.customerConnectorFields.bitbucket,['email','token','repository','branch']);
+ assert(meta.data.platformServices.some(item=>item.service==='Transactional email'&&typeof item.configured==='boolean'));
  const openrouter={provider:'openrouter',userLimit:1,globalLimit:2};
  const platformKey={token:'OPENROUTER_PRIVATE_FIXTURE',model:'openai/gpt-4.1-mini'};
  assert.equal((await act({action:'connectors.save',...openrouter,config:platformKey,enabled:false})).status,200);

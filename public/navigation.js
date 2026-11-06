@@ -17,15 +17,35 @@ export function initFormHints(root){
  if(!root)return;
  const fields='input:not([type]), input[type=text], input[type=email], input[type=password], input[type=tel], input[type=url], input[type=search], input[type=number], textarea';
  const examples={email:'you@example.com',phone:'+1 512 555 0100',password:'Enter your password',currentPassword:'Enter your current password',website:'https://yourbusiness.com',keyword:'e.g. plumber in Austin',domain:'example.com',locationCode:'e.g. 2840'};
+ const toggled=new WeakSet();
+ const addVisibilityToggle=(input,title)=>{
+  if(input.type!=='password'||toggled.has(input))return;
+  toggled.add(input);
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='btn small password-visibility';
+  const subject=title||'password';
+  function mask(hidden){
+   input.type=hidden?'password':'text';
+   button.textContent=hidden?'Show':'Hide';
+   button.setAttribute('aria-label',(hidden?'Show ':'Hide ')+subject);
+  }
+  button.onclick=()=>mask(input.type==='text');
+  input.form?.addEventListener('reset',()=>mask(true));
+  input.form?.addEventListener('submit',()=>mask(true),true);
+  mask(true);
+  (input.closest('label')||input).after(button);
+ };
  const decorate=scope=>{
   const controls=[...(scope.matches?.(fields)?[scope]:[]),...scope.querySelectorAll(fields)];
   for(const field of controls){
-   if(field.hasAttribute('placeholder')||field.readOnly||field.disabled)continue;
+   if(field.readOnly||field.disabled)continue;
    const label=field.labels?.[0]?.cloneNode(true);
    label?.querySelectorAll('input,select,textarea,button,small,.hint').forEach(node=>node.remove());
    const title=(label?.textContent||field.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim();
    const hint=Object.hasOwn(examples,field.name)?examples[field.name]:title||field.name.replace(/(?<=[a-z])(?=[A-Z])/g,' ').replaceAll('_',' ');
-   if(hint)field.placeholder=hint;
+   if(hint&&!field.hasAttribute('placeholder'))field.placeholder=hint;
+   addVisibilityToggle(field,title);
   }
  };
  decorate(root);

@@ -238,3 +238,5 @@ html[data-palette=glass] :is(.workspace.studio-workspace,.admin-layout){backgrou
 .builder-theme-preview { width: 100%; height: min(68vh, 640px); background: var(--ivory); border: 1px solid var(--line); }
 #builder-progress { margin: 16px 0; }
 #builder-progress progress { width: 100%; }
+
+.password-visibility{justify-self:start;margin:0 0 .75rem}
